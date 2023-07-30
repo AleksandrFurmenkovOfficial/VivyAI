@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -29,30 +29,23 @@ namespace VivyAI
         internal static IMessanger messanger;
         internal static IChatCommandProcessor commandProcessor;
 
-        internal static string openAIToken;
-        internal static string telegrammBotKey;
-        internal static string adminId;
-
-        public static async Task Main(string[] args)
+        public static async Task Main()
         {
-            Initialize(args);
-            await Task.Delay(-1).ConfigureAwait(false);
-        }
-
-        public static void Initialize(string[] args)
-        {
-            openAIToken = args[0];
-            telegrammBotKey = args[1];
-            adminId = args[2];
+            var openAIToken = Environment.GetEnvironmentVariable("OPENAI_TOKEN");
+            var openAIOrgToken = Environment.GetEnvironmentVariable("OPENAI_ORG_TOKEN"); // some OpenAI API needs it
+            var telegrammBotKey = Environment.GetEnvironmentVariable("TELEGRAM_BOT_KEY");
+            var adminId = Environment.GetEnvironmentVariable("ADMIN_ID");
 
             visitors = new ConcurrentDictionary<string, Visitor>();
             chatById = new ConcurrentDictionary<string, IChat>();
 
-            openAI = new OpenAI(openAIToken);
+            openAI = new OpenAI(openAIToken, openAIOrgToken);
             messanger = new Messanger(telegrammBotKey, adminId);
 
             _ = messanger.Message.Subscribe(HandleMessage);
             commandProcessor = new ChatCommandProcessor(messanger.IsAdmin);
+
+            await Task.Delay(-1).ConfigureAwait(false);
         }
 
         private static async void HandleMessage(IChatMessage message)
