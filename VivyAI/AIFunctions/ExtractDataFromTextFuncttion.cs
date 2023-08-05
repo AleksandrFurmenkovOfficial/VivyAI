@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using OpenAI_API.ChatFunctions;
+﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
@@ -7,41 +7,50 @@ namespace VivyAI.Functions
 {
     internal class ExtractDataFromTextFuncttion : IFunction
     {
+        internal sealed class ExtractDataFromTextModel
+        {
+            [JsonPropertyName("role")]
+            public string Role { get; set; }
+            [JsonPropertyName("question")]
+            public string Question { get; set; }
+            [JsonPropertyName("text")]
+            public string Text { get; set; }
+        }
+
         public string name => "ExtractDataFromText";
 
         public object Description()
         {
-            var parameters = new JObject()
+            return new JsonFunction
             {
-                ["type"] = "object",
-                ["required"] = new JArray("role", "question", "text"),
-                ["properties"] = new JObject
-                {
-                    ["role"] = new JObject
+                Name = name,
+                Description = "This function allows you to extract answers from large text.",
+                Parameters = new JsonFunctionNonPrimitiveProperty()
+                    .AddPrimitive("role", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "Indicates from which point of view to answer the question on the text."
-                    },
-                    ["question"] = new JObject
+                        Type = "string",
+                        Description = "Indicates from which point of view to answer the question on the text."
+                    })
+                    .AddRequired("role")
+                    .AddPrimitive("question", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "Question on the text."
-                    },
-                    ["text"] = new JObject
+                        Type = "string",
+                        Description = "Question on the text."
+                    })
+                    .AddRequired("question")
+                    .AddPrimitive("text", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "The text for which questions are asked."
-                    }
-                }
+                        Type = "string",
+                        Description = "The text for which questions are asked."
+                    })
+                    .AddRequired("text")
             };
-
-            string functionDescription = "This function allows you to extract answers from large text.";
-            return new Function(name, functionDescription, parameters);
         }
 
         public Task<string> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            return api.GetSingleResponseMostWideContext((string)parameters.role, (string)parameters.question, (string)parameters.data);
+            ExtractDataFromTextModel model = JsonConvert.DeserializeObject<ExtractDataFromTextModel>(parameters);
+            return api.GetSingleResponseMostWideContext(model.Role, model.Question, model.Text);
         }
     }
 }

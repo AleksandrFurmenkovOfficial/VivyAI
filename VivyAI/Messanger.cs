@@ -79,7 +79,9 @@ namespace VivyAI
         private void HandleMessage(Message message)
         {
             if (message.From.Id != message.Chat.Id)
+            {
                 return;
+            }
 
             if (message.Text == null || message.Text.Length < 1)
             {

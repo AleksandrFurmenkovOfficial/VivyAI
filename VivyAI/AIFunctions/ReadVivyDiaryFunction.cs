@@ -1,8 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using OpenAI_API.ChatFunctions;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
@@ -14,15 +13,12 @@ namespace VivyAI.Functions
 
         public object Description()
         {
-            var parameters = new JObject()
+            return new JsonFunction
             {
-                ["type"] = "object",
-                ["required"] = new JArray(),
-                ["properties"] = new JObject()
+                Name = name,
+                Description = "This function allows Vivy to read the last nine entries from her diary.",
+                Parameters = new JsonFunctionNonPrimitiveProperty()
             };
-
-            string functionDescription = "This function allows Vivy to read the last nine entries from her diary.";
-            return new Function(name, functionDescription, parameters);
         }
 
         public async Task<string> Call(IOpenAI api, dynamic parameters, string userId)

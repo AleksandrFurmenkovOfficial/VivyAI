@@ -23,10 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.50" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.51" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="7.0.0" />
-    <PackageReference Include="OpenAI" Version="1.7.2" />
     <PackageReference Include="RxTelegram.Bot" Version="6.7.0" />
+    <PackageReference Include="Rystem.OpenAi" Version="3.3.2" />
     <PackageReference Include="System.Reactive.Core" Version="6.0.0" />
   </ItemGroup>
 
