@@ -1,7 +1,7 @@
 ﻿using HtmlAgilityPack;
-using Newtonsoft.Json.Linq;
-using OpenAI_API.ChatFunctions;
+using Newtonsoft.Json;
 using System.Net.Http;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
@@ -9,38 +9,43 @@ namespace VivyAI.Functions
 {
     internal class ExtractInformationFromURLFunction : IFunction
     {
+        internal sealed class ExtractInformationFromURLModel
+        {
+            [JsonPropertyName("url")]
+            public string Url { get; set; }
+            [JsonPropertyName("question")]
+            public string Question { get; set; }
+        }
+
         private static readonly HttpClient httpClient = new();
 
         public string name => "ExtractInformationFromURL";
 
         public object Description()
         {
-            var parameters = new JObject()
+            return new JsonFunction
             {
-                ["type"] = "object",
-                ["required"] = new JArray("url", "question"),
-                ["properties"] = new JObject
-                {
-                    ["url"] = new JObject
+                Name = name,
+                Description = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question.",
+                Parameters = new JsonFunctionNonPrimitiveProperty()
+                    .AddPrimitive("url", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "The URL of the webpage to be analyzed."
-                    },
-                    ["question"] = new JObject
+                        Type = "string",
+                        Description = "The URL of the webpage to be analyzed."
+                    })
+                    .AddRequired("url")
+                    .AddPrimitive("question", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "The question about the information to be extracted from the webpage."
-                    }
-                }
+                        Type = "string",
+                        Description = "The question about the information to be extracted from the webpage."
+                    })
+                    .AddRequired("question")
             };
-
-            string functionDescription = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question.";
-            return new Function(name, functionDescription, parameters);
         }
 
-        private static async Task<string> GetTextContentOnly(dynamic parameters)
+        private static async Task<string> GetTextContentOnly(string url)
         {
-            string responseBody = await httpClient.GetStringAsync((string)parameters.url).ConfigureAwait(false);
+            string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
             HtmlDocument htmlDocument = new();
             htmlDocument.LoadHtml(responseBody);
             return htmlDocument.DocumentNode.InnerText;
@@ -48,8 +53,9 @@ namespace VivyAI.Functions
 
         public async Task<string> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            string textContent = await GetTextContentOnly(parameters).ConfigureAwait(false);
-            return await api.GetSingleResponseMostWideContext("You are a knowledge extractor from a web page", (string)parameters.question, textContent).ConfigureAwait(false);
+            ExtractInformationFromURLModel model = JsonConvert.DeserializeObject<ExtractInformationFromURLModel>(parameters);
+            string textContent = await GetTextContentOnly(model.Url).ConfigureAwait(false);
+            return await api.GetSingleResponseMostWideContext("You are a fact extractor from given text.", model.Question, textContent).ConfigureAwait(false);
         }
     }
 }

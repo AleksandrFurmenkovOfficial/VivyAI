@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using OpenAI_API.ChatFunctions;
+﻿using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
@@ -9,26 +9,28 @@ namespace VivyAI.Functions
 {
     internal class WriteToVivyDiaryFunction : IFunction
     {
+        internal sealed class WriteToVivyDiaryModel
+        {
+            [JsonPropertyName("info")]
+            public string Info { get; set; }
+        }
+
         public string name => "WriteToVivyDiary";
 
         public object Description()
         {
-            JObject parameters = new()
+            return new JsonFunction
             {
-                ["type"] = "object",
-                ["required"] = new JArray("info"),
-                ["properties"] = new JObject
-                {
-                    ["info"] = new JObject
+                Name = name,
+                Description = "This function allows Vivy to write a new entry in her diary (persistent storage between sessions).",
+                Parameters = new JsonFunctionNonPrimitiveProperty()
+                    .AddPrimitive("info", new JsonFunctionProperty
                     {
-                        ["type"] = "string",
-                        ["description"] = "The diary entry to be written (facts, thoughts, reasoning, conjectures, impressions)."
-                    }
-                }
+                        Type = "string",
+                        Description = "The diary entry to be written (facts, thoughts, reasoning, conjectures, impressions)."
+                    })
+                    .AddRequired("info")
             };
-
-            string functionDescription = "This function allows Vivy to write a new entry in her diary (persistent storage between sessions).";
-            return new Function(name, functionDescription, parameters);
         }
 
         public async Task<string> Call(IOpenAI api, dynamic parameters, string userId)
@@ -36,7 +38,8 @@ namespace VivyAI.Functions
             string path = $"{userId}.txt";
             DateTime now = DateTime.Now;
             string timestamp = $"[{now.ToShortDateString()}|{now.ToShortTimeString()}]";
-            string line = $"{timestamp}|{parameters.info}";
+            string info = JsonConvert.DeserializeObject<WriteToVivyDiaryModel>(parameters).Info;
+            string line = $"{timestamp}|{info}";
             await File.AppendAllTextAsync(path, line + Environment.NewLine);
             return "Information saved.";
         }

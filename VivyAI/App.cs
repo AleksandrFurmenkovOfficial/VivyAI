@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using VivyAI.Interfaces;
@@ -32,7 +33,7 @@ namespace VivyAI
         public static async Task Main()
         {
             var openAIToken = Environment.GetEnvironmentVariable("OPENAI_TOKEN");
-            var openAIOrgToken = Environment.GetEnvironmentVariable("OPENAI_ORG_TOKEN"); // some OpenAI API needs it
+            var openAIOrgToken = Environment.GetEnvironmentVariable("OPENAI_ORG_TOKEN");
             var telegrammBotKey = Environment.GetEnvironmentVariable("TELEGRAM_BOT_KEY");
             var adminId = Environment.GetEnvironmentVariable("ADMIN_ID");
 
@@ -56,7 +57,9 @@ namespace VivyAI
                 await chat.LockAsync().ConfigureAwait(false);
                 bool isCommandDone = await commandProcessor.ExecuteIfChatCommand(message).ConfigureAwait(false);
                 if (isCommandDone)
+                {
                     return;
+                }
 
                 var dateTime = DateTime.Now;
                 _ = message.content.Insert(0, $"[{dateTime.ToShortDateString()}|{dateTime.ToShortTimeString()}] ");
@@ -64,7 +67,7 @@ namespace VivyAI
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Debug.WriteLine(ex.Message);
                 _ = messanger.NotifyAdmin(ex.Message).ConfigureAwait(false);
                 _ = messanger.SendMessage(new ChatMessage { chatId = message.chatId, content = Strings.SomethingGoesWrong }).ConfigureAwait(false);
             }
