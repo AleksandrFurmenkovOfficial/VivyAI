@@ -25,7 +25,7 @@
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.51" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="7.0.0" />
-    <PackageReference Include="RxTelegram.Bot" Version="6.7.0" />
+    <PackageReference Include="RxTelegram.Bot" Version="6.8.0" />
     <PackageReference Include="Rystem.OpenAi" Version="3.3.3" />
     <PackageReference Include="System.Reactive.Core" Version="6.0.0" />
   </ItemGroup>
