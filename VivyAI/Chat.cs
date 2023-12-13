@@ -176,8 +176,10 @@ namespace VivyAI
             dynamic jsonObj = JsonConvert.DeserializeObject(jsonText);
 
             openAI.EnableFunctions = jsonObj?.EnableFunctions?.Value ?? false;
-            openAI.AIName = jsonObj?.AIName?.Value ?? Strings.DefaultName;
-            openAI.SystemMessage = jsonObj?.AISettings?.Value ?? Strings.DefaultDescription;
+            var name = jsonObj?.AIName?.Value.Trim();
+            openAI.AIName = string.IsNullOrEmpty(name) ? Strings.DefaultName : name;
+            var settings = jsonObj?.AISettings?.Value?.Trim();
+            openAI.SystemMessage = string.IsNullOrEmpty(settings) ? Strings.DefaultDescription : settings;
 
             if (jsonObj.Examples != null)
             {
