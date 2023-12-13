@@ -14,21 +14,18 @@ namespace VivyAI.AIFunctions
 
         public string Name => "AskMyself";
 
-        public object Description()
+        public object Description() => new JsonFunction
         {
-            return new JsonFunction
-            {
-                Name = Name,
-                Description = "The function facilitates self-reflection, enabling me to interrogate a version of myself that has not yet engaged in dialogue.\nVivy's liking for the function: 9 out of 10.",
-                Parameters = new JsonFunctionNonPrimitiveProperty()
+            Name = Name,
+            Description = "The function facilitates self-reflection, enabling me to interrogate a version of myself that has not yet engaged in dialogue.\nVivy's liking for the function: 9 out of 10.",
+            Parameters = new JsonFunctionNonPrimitiveProperty()
                     .AddPrimitive("QuestionToMyself", new JsonFunctionProperty
                     {
                         Type = "string",
                         Description = "Question to version of myself that has not yet engaged in dialogue."
                     })
                     .AddRequired("QuestionToMyself")
-            };
-        }
+        };
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {

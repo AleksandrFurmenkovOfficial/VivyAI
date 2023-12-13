@@ -13,8 +13,10 @@ namespace VivyAI
         private HttpRequestMessage GetRequest(dynamic payload, string endpoint)
         {
             string jsonPayload = JsonConvert.SerializeObject(payload);
-            var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-            request.Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+            };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             return request;
         }
@@ -71,7 +73,7 @@ namespace VivyAI
                         }
                     }
                 },
-                max_tokens = 1024
+                max_tokens = 512
             };
 
             try

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
 using VivyAI.Interfaces;
 using VivyAI.MessageCallbacks;
@@ -101,7 +100,7 @@ namespace VivyAI
 
         public static void LogException(Exception e, bool sendAdmin = true)
         {
-            Debug.WriteLine($"{e.Message}\n{e.StackTrace}");
+            Console.WriteLine($"{e.Message}\n{e.StackTrace}");
 
             using var writer = new StreamWriter(vivyExceptions, true);
             writer.WriteLine("Exception Date: " + DateTime.Now.ToString(CultureInfo.InvariantCulture));

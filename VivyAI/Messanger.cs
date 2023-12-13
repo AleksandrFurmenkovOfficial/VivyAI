@@ -3,7 +3,6 @@ using RxTelegram.Bot.Interface.BaseTypes.Enums;
 using RxTelegram.Bot.Interface.BaseTypes.Requests.Attachments;
 using RxTelegram.Bot.Interface.BaseTypes.Requests.Messages;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
@@ -13,10 +12,9 @@ namespace VivyAI
 {
     internal sealed class Messanger : IMessanger
     {
-        private readonly static Regex WrongNameSymbolsRegExp = new("^a-zA-Z0-9_");
-
         private const long maxUniqueVisitors = 10;
         private const ParseMode parseMode = ParseMode.HTML;
+        private const string telegramFileBot = "https://api.telegram.org/file/bot";
 
         private RxTelegram.Bot.TelegramBot bot;
         private IDisposable messageListener;
@@ -26,6 +24,8 @@ namespace VivyAI
 
         private readonly ConcurrentDictionary<string, string> callbacksMapping = new();
         private readonly ConcurrentDictionary<string, string> nameMap = new();
+        private readonly static Regex WrongNameSymbolsRegExp = new("^a-zA-Z0-9_");
+
         private readonly string adminId;
         private readonly string token;
 
@@ -80,6 +80,7 @@ namespace VivyAI
             InlineKeyboardMarkup inlineKeyboardMarkup = null;
             if (messageCallbackIds != null && messageCallbackIds.Any())
             {
+                callbacksMapping.Clear();
                 var buttons = new List<InlineKeyboardButton>();
                 foreach (var callbackId in messageCallbackIds)
                 {
@@ -135,16 +136,14 @@ namespace VivyAI
         {
             var photoSize = photos.Last();
             var file = await bot.GetFile(photoSize.FileId);
-            var baseUrl = new Uri($"https://api.telegram.org/file/bot{token}/");
+            var baseUrl = new Uri($"{telegramFileBot}{token}/");
             return new Uri(baseUrl, file.FilePath).AbsoluteUri;
         }
 
         private void HandleTelegramCallbackQuery(CallbackQuery callbackQuery)
         {
-            Debug.WriteLine(callbackQuery.Data);
             if (callbacksMapping.Remove(callbackQuery.Data, out string callbackID))
             {
-                Debug.WriteLine(callbackID);
                 _ = Task.Run(() =>
                 {
                     handleAppCallback(new KeyValuePair<string, CallbackCallId>(callbackID, new CallbackCallId(callbackQuery.From.Id.ToString(CultureInfo.InvariantCulture), callbackQuery.Message.MessageId.ToString(CultureInfo.InvariantCulture))));

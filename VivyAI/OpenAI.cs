@@ -2,7 +2,6 @@
 using Rystem.OpenAi;
 using Rystem.OpenAi.Chat;
 using System.Data;
-using System.Diagnostics;
 using System.Text.Json.Serialization;
 using VivyAI.AIFunctions;
 using VivyAI.Interfaces;
@@ -82,7 +81,7 @@ namespace VivyAI
             ChatMessage resultMessage;
             try
             {
-                Debug.WriteLine($"Vivy calls function {functionName}({functionArguments})");
+                Console.WriteLine($"Vivy calls function {functionName}({functionArguments})");
                 var result = await functions[functionName].Call(this, functionArguments, userId);
                 resultMessage = CreateFunctionResultMessage(functionName, result);
             }

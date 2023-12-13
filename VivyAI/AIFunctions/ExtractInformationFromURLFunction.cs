@@ -19,27 +19,24 @@ namespace VivyAI.AIFunctions
 
         public string Name => "ExtractInformationFromURL";
 
-        public object Description()
+        public object Description() => new JsonFunction
         {
-            return new JsonFunction
-            {
-                Name = Name,
-                Description = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question(How much Vivy like the function: 6/10).",
-                Parameters = new JsonFunctionNonPrimitiveProperty()
-                    .AddPrimitive("url", new JsonFunctionProperty
-                    {
-                        Type = "string",
-                        Description = "The URL of the webpage to be analyzed. Use simple web pages (if it possible only with plain text data!) over full URLs loaded with scripts, etc."
-                    })
-                    .AddRequired("url")
-                    .AddPrimitive("question", new JsonFunctionProperty
-                    {
-                        Type = "string",
-                        Description = "The question about the information to be extracted from the webpage."
-                    })
-                    .AddRequired("question")
-            };
-        }
+            Name = Name,
+            Description = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question(How much Vivy like the function: 6/10).",
+            Parameters = new JsonFunctionNonPrimitiveProperty()
+                .AddPrimitive("url", new JsonFunctionProperty
+                {
+                    Type = "string",
+                    Description = "The URL of the webpage to be analyzed. Use simple web pages (if it possible only with plain text data!) over full URLs loaded with scripts, etc."
+                })
+                .AddRequired("url")
+                .AddPrimitive("question", new JsonFunctionProperty
+                {
+                    Type = "string",
+                    Description = "The question about the information to be extracted from the webpage."
+                })
+                .AddRequired("question")
+        };
 
         private static async Task<string> GetTextContentOnly(Uri url)
         {

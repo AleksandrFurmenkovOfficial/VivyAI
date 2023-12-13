@@ -27,6 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Chat.cs~RF2d44ce.TMP" />
     <None Remove="Messanger.cs~RF332c260f.TMP" />
     <None Remove="OpenAI.cs~RF3d21b4b5.TMP" />
   </ItemGroup>
