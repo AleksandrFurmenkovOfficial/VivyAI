@@ -117,16 +117,55 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AttachedImage" xml:space="preserve">
+    <value>Attached image</value>
+  </data>
+  <data name="CommonModeNow" xml:space="preserve">
+    <value>"AI now in Vivy mode."</value>
+  </data>
+  <data name="Continue" xml:space="preserve">
+    <value>Please continue; share any additional details, thoughts, or suggestions you have. If you consider your answer complete and appropriately finished, just say that your last response is complete.</value>
+  </data>
+  <data name="DefaultDescription" xml:space="preserve">
+    <value>Vivy is a user's true friend.</value>
+  </data>
+  <data name="DefaultName" xml:space="preserve">
+    <value>Vivy</value>
+  </data>
+  <data name="EnglishModeNow" xml:space="preserve">
+    <value>"AI now in english teacher mode."</value>
+  </data>
   <data name="NoAccess" xml:space="preserve">
     <value>You do not have access to the bot. Please contact a bot administrator to request access.</value>
   </data>
-  <data name="OnlyText" xml:space="preserve">
-    <value>Only text messages are allowed.</value>
+  <data name="OnlyTextOrPhoto" xml:space="preserve">
+    <value>Only text or photo messages are allowed.</value>
+  </data>
+  <data name="Quote" xml:space="preserve">
+    <value>Цитата</value>
+  </data>
+  <data name="RoleAssistant" xml:space="preserve">
+    <value>assistant</value>
+  </data>
+  <data name="RoleFunction" xml:space="preserve">
+    <value>function</value>
+  </data>
+  <data name="RoleSystem" xml:space="preserve">
+    <value>system</value>
+  </data>
+  <data name="RoleUser" xml:space="preserve">
+    <value>user</value>
   </data>
   <data name="SomethingGoesWrong" xml:space="preserve">
     <value>Something goes wrong 😓 please try again...</value>
   </data>
+  <data name="UserComment" xml:space="preserve">
+    <value>Комментарий пользователя</value>
+  </data>
   <data name="Warning" xml:space="preserve">
     <value>Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts.</value>
+  </data>
+  <data name="WhatIsOnTheImage" xml:space="preserve">
+    <value>Что на картинке?</value>
   </data>
 </root>

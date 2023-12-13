@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using VivyAI.Commands;
+﻿using VivyAI.Commands;
 using VivyAI.Interfaces;
 
 namespace VivyAI
 {
-    internal class ChatCommandProcessor : IChatCommandProcessor
+    internal sealed class ChatCommandProcessor : IChatCommandProcessor
     {
         private readonly Dictionary<string, IChatCommand> commands = new();
-        private readonly Func<IChatMessage, bool> isAdminChecker;
+        private readonly Func<string, bool> isAdminChecker;
 
-        public ChatCommandProcessor(Func<IChatMessage, bool> isAdminChecker)
+        public ChatCommandProcessor(Func<string, bool> isAdminChecker)
         {
             this.isAdminChecker = isAdminChecker;
             RegisterCommands();
@@ -24,6 +20,8 @@ namespace VivyAI
             AddCommand(new ShowVisitorsCommand());
             AddCommand(new AddAccessCommand());
             AddCommand(new DelAccessCommand());
+            AddCommand(new CommonCommand());
+            AddCommand(new EnglishCommand());
         }
 
         private void AddCommand(IChatCommand command)
@@ -31,16 +29,25 @@ namespace VivyAI
             commands.Add($"/{command.CommandName}", command);
         }
 
-        public async Task<bool> ExecuteIfChatCommand(IChatMessage message)
+        public bool ExecuteIfChatCommand(string chatId, IChatMessage message)
         {
-            var text = message.content;
-            foreach (var commandPair in commands.Where((value) => text.Trim().StartsWith(value.Key)))
+            if (string.IsNullOrEmpty(message.Content))
+            {
+                return false;
+            }
+
+            var text = message.Content;
+            foreach (var commandPair in commands.Where((value) => text.Trim().StartsWith(value.Key, StringComparison.OrdinalIgnoreCase)))
             {
                 var command = commandPair.Value;
-                if (!command.IsAdminCommand || isAdminChecker(message))
+                if (!command.IsAdminCommand || isAdminChecker(chatId))
                 {
-                    message.content = text[commandPair.Key.Length..];
-                    return await command.Execute(message);
+                    message.Content = text[commandPair.Key.Length..];
+                    if (App.chatById.TryGetValue(chatId, out IChat chat))
+                    {
+                        command.Execute(chat, message);
+                        return true;
+                    }
                 }
             }
 

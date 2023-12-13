@@ -2,9 +2,12 @@
 {
     public interface IChatMessage
     {
-        string chatId { get; set; }
-        string name { get; set; }
-        string content { get; set; }
-        string role { get; set; }
+        public const string internalMessage = "0";
+
+        string Id { get; set; }
+        string Name { get; set; }
+        string Content { get; set; }
+        string Role { get; set; }
+        public Uri ImageUrl { get; set; }
     }
 }

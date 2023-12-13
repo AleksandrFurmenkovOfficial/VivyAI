@@ -2,16 +2,16 @@
 
 namespace VivyAI.Commands
 {
-    internal sealed class StartCommand : IChatCommand
+    internal sealed class EnglishCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "start";
+        string IChatCommand.CommandName => "english";
         bool IChatCommand.IsAdminCommand => false;
         public void Execute(IChat chat, IChatMessage message)
         {
-            chat.Reset();
+            chat.SetEnglishTeacherMode();
             App.SendAppMessage(chat.Id, new ChatMessage()
             {
-                Content = Strings.Warning
+                Content = Strings.EnglishModeNow
             });
         }
     }

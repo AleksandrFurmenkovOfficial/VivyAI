@@ -1,13 +1,11 @@
 ﻿using HtmlAgilityPack;
 using Newtonsoft.Json;
-using System.Net.Http;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
 namespace VivyAI.Functions
 {
-    internal class ExtractInformationFromURLFunction : IFunction
+    internal sealed class ExtractInformationFromURLFunction : IFunction
     {
         internal sealed class ExtractInformationFromURLModel
         {
@@ -19,19 +17,19 @@ namespace VivyAI.Functions
 
         private static readonly HttpClient httpClient = new();
 
-        public string name => "ExtractInformationFromURL";
+        public string Name => "ExtractInformationFromURL";
 
         public object Description()
         {
             return new JsonFunction
             {
-                Name = name,
-                Description = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question.",
+                Name = Name,
+                Description = "This function retrieves and analyzes the content of a specified webpage to extract the required information based on the provided question(How much Vivy like the function: 6/10).",
                 Parameters = new JsonFunctionNonPrimitiveProperty()
                     .AddPrimitive("url", new JsonFunctionProperty
                     {
                         Type = "string",
-                        Description = "The URL of the webpage to be analyzed."
+                        Description = "The URL of the webpage to be analyzed. Use simple web pages (if it possible only with plain text data!) over full URLs loaded with scripts, etc."
                     })
                     .AddRequired("url")
                     .AddPrimitive("question", new JsonFunctionProperty
@@ -43,19 +41,19 @@ namespace VivyAI.Functions
             };
         }
 
-        private static async Task<string> GetTextContentOnly(string url)
+        private static async Task<string> GetTextContentOnly(Uri url)
         {
-            string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
-            HtmlDocument htmlDocument = new();
+            string responseBody = await httpClient.GetStringAsync(url);
+            var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(responseBody);
             return htmlDocument.DocumentNode.InnerText;
         }
 
-        public async Task<string> Call(IOpenAI api, dynamic parameters, string userId)
+        public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            ExtractInformationFromURLModel model = JsonConvert.DeserializeObject<ExtractInformationFromURLModel>(parameters);
-            string textContent = await GetTextContentOnly(model.Url).ConfigureAwait(false);
-            return await api.GetSingleResponseMostWideContext("You are a fact extractor from given text.", model.Question, textContent).ConfigureAwait(false);
+            var model = JsonConvert.DeserializeObject<ExtractInformationFromURLModel>(parameters);
+            string textContent = await GetTextContentOnly(new Uri(model.Url));
+            return new FuncResult(await api.GetSingleResponse("You are a fact extractor from given text.", model.Question, textContent));
         }
     }
 }

@@ -61,6 +61,60 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attached image.
+        /// </summary>
+        internal static string AttachedImage {
+            get {
+                return ResourceManager.GetString("AttachedImage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &quot;AI now in Vivy mode.&quot;.
+        /// </summary>
+        internal static string CommonModeNow {
+            get {
+                return ResourceManager.GetString("CommonModeNow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please continue; share any additional details, thoughts, or suggestions you have. If you consider your answer complete and appropriately finished, just say that your last response is complete..
+        /// </summary>
+        internal static string Continue {
+            get {
+                return ResourceManager.GetString("Continue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Vivy is a user&apos;s true friend..
+        /// </summary>
+        internal static string DefaultDescription {
+            get {
+                return ResourceManager.GetString("DefaultDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Vivy.
+        /// </summary>
+        internal static string DefaultName {
+            get {
+                return ResourceManager.GetString("DefaultName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &quot;AI now in english teacher mode.&quot;.
+        /// </summary>
+        internal static string EnglishModeNow {
+            get {
+                return ResourceManager.GetString("EnglishModeNow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You do not have access to the bot. Please contact a bot administrator to request access..
         /// </summary>
         internal static string NoAccess {
@@ -70,11 +124,56 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Only text messages are allowed..
+        ///   Looks up a localized string similar to Only text or photo messages are allowed..
         /// </summary>
-        internal static string OnlyText {
+        internal static string OnlyTextOrPhoto {
             get {
-                return ResourceManager.GetString("OnlyText", resourceCulture);
+                return ResourceManager.GetString("OnlyTextOrPhoto", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Цитата.
+        /// </summary>
+        internal static string Quote {
+            get {
+                return ResourceManager.GetString("Quote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to assistant.
+        /// </summary>
+        internal static string RoleAssistant {
+            get {
+                return ResourceManager.GetString("RoleAssistant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to function.
+        /// </summary>
+        internal static string RoleFunction {
+            get {
+                return ResourceManager.GetString("RoleFunction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to system.
+        /// </summary>
+        internal static string RoleSystem {
+            get {
+                return ResourceManager.GetString("RoleSystem", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to user.
+        /// </summary>
+        internal static string RoleUser {
+            get {
+                return ResourceManager.GetString("RoleUser", resourceCulture);
             }
         }
         
@@ -88,11 +187,29 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Комментарий пользователя.
+        /// </summary>
+        internal static string UserComment {
+            get {
+                return ResourceManager.GetString("UserComment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts..
         /// </summary>
         internal static string Warning {
             get {
                 return ResourceManager.GetString("Warning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Что на картинке?.
+        /// </summary>
+        internal static string WhatIsOnTheImage {
+            get {
+                return ResourceManager.GetString("WhatIsOnTheImage", resourceCulture);
             }
         }
     }

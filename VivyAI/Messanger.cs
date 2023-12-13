@@ -1,142 +1,253 @@
 ﻿using RxTelegram.Bot.Interface.BaseTypes;
 using RxTelegram.Bot.Interface.BaseTypes.Enums;
+using RxTelegram.Bot.Interface.BaseTypes.Requests.Attachments;
 using RxTelegram.Bot.Interface.BaseTypes.Requests.Messages;
-using System;
-using System.Collections.Generic;
-using System.Reactive.Subjects;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Globalization;
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using VivyAI.Interfaces;
 
 namespace VivyAI
 {
-    internal class Messanger : IMessanger
+    internal sealed class Messanger : IMessanger
     {
+        private readonly static Regex WrongNameSymbolsRegExp = new("^a-zA-Z0-9_");
+
         private const long maxUniqueVisitors = 10;
         private const ParseMode parseMode = ParseMode.HTML;
-        private readonly RxTelegram.Bot.TelegramBot bot;
-        private readonly IDisposable listener;
-        private readonly Subject<IChatMessage> messageSubject;
-        private readonly Dictionary<string, string> nameMap = new();
+
+        private RxTelegram.Bot.TelegramBot bot;
+        private IDisposable messageListener;
+        private IDisposable callbackListener;
+        private readonly Action<KeyValuePair<string, IChatMessage>> handleAppMessage;
+        private readonly Action<KeyValuePair<string, CallbackCallId>> handleAppCallback;
+
+        private readonly ConcurrentDictionary<string, string> callbacksMapping = new();
+        private readonly ConcurrentDictionary<string, string> nameMap = new();
         private readonly string adminId;
+        private readonly string token;
 
-        public IObservable<IChatMessage> Message => messageSubject;
-
-        public Messanger(string token, string adminId)
+        public Messanger(
+            string token,
+            string adminId,
+            Action<KeyValuePair<string, IChatMessage>> handleAppMessage,
+            Action<KeyValuePair<string, CallbackCallId>> handleAppCallback)
         {
             this.adminId = adminId;
+            this.token = token;
+            this.handleAppMessage = handleAppMessage;
+            this.handleAppCallback = handleAppCallback;
 
-            bot = new RxTelegram.Bot.TelegramBot(token);
-            messageSubject = new Subject<IChatMessage>();
-            listener = bot.Updates.Message.Subscribe(HandleMessage);
-
-            User me = bot.GetMe().Result;
-            Console.WriteLine($"@{me.Username} has started!");
+            _ = ReCreate();
         }
 
-        public async Task<string> SendMessage(IChatMessage message)
+        private async Task ReCreate()
+        {
+            this.bot = new RxTelegram.Bot.TelegramBot(token);
+
+            this.messageListener?.Dispose();
+            this.messageListener = bot.Updates.Message.Subscribe(HandleTelegramMessage, OnError);
+
+            this.callbackListener?.Dispose();
+            this.callbackListener = bot.Updates.CallbackQuery.Subscribe(HandleTelegramCallbackQuery, OnError);
+
+            Console.WriteLine($"@{(await bot.GetMe()).Username} has started!");
+        }
+
+        private void OnError(Exception obj)
+        {
+            Console.WriteLine($"Messanger.OnError: {obj.Message}\nStack:\n{obj.StackTrace}");
+            _ = ReCreate();
+        }
+
+        public async Task<string> SendMessage(string chatId, IChatMessage message, IList<CallbackId> messageCallbackIds = null)
         {
             var newMessage = await bot.SendMessage(new SendMessage
             {
-                ChatId = long.Parse(message.chatId),
-                Text = message.content,
+                ChatId = Utils.StrToLong(chatId),
+                Text = message.Content,
+                ReplyMarkup = GetInlineKeyboardMarkup(messageCallbackIds),
                 ParseMode = parseMode
-            }).ConfigureAwait(false);
+            });
 
-            return newMessage.MessageId.ToString();
+            return newMessage.MessageId.ToString(CultureInfo.InvariantCulture);
         }
 
-        public string AuthorName(IChatMessage message)
+        private InlineKeyboardMarkup GetInlineKeyboardMarkup(IList<CallbackId> messageCallbackIds)
         {
-            return nameMap[message.chatId];
-        }
-
-        public bool IsAdmin(IChatMessage message)
-        {
-            return message.chatId == adminId.ToString();
-        }
-
-        private string AuthorNameInternal(Message message)
-        {
-            string input = $"{message.From.FirstName}_{message.From.Username}_{message.From.LastName}".Trim().TrimStart('_').TrimEnd('_');
-            return Regex.Replace(input, @"[^a-zA-Z0-9_]", string.Empty); ;
-        }
-
-        private bool HasAccess(IChatMessage message)
-        {
-            var chatId = message.chatId;
-            bool isAdmin = IsAdmin(message);
-            if (isAdmin)
+            InlineKeyboardMarkup inlineKeyboardMarkup = null;
+            if (messageCallbackIds != null && messageCallbackIds.Any())
             {
-                _ = App.visitors.TryAdd(chatId, new Visitor(isAdmin, AuthorName(message)));
-                return isAdmin;
+                var buttons = new List<InlineKeyboardButton>();
+                foreach (var callbackId in messageCallbackIds)
+                {
+                    var token = Guid.NewGuid().ToString();
+                    _ = callbacksMapping.TryAdd(token, callbackId.name);
+                    buttons.Add(new InlineKeyboardButton
+                    {
+                        Text = callbackId.name,
+                        CallbackData = token
+                    });
+                }
+
+                inlineKeyboardMarkup = new InlineKeyboardMarkup
+                {
+                    InlineKeyboard = new[] { buttons.ToArray() }
+                };
             }
 
-            Visitor visitor = App.visitors.GetOrAdd(chatId, (string id) => { Visitor arg = new(App.visitors.Count < maxUniqueVisitors, AuthorName(message)); return arg; });
+            return inlineKeyboardMarkup;
+        }
+
+        public bool IsAdmin(string chatId)
+        {
+            return chatId == adminId;
+        }
+
+        private static string AuthorNameInternal(Message message)
+        {
+            string input = $"{message.From.FirstName}_{message.From.Username}_{message.From.LastName}".Trim().TrimStart('_').TrimEnd('_');
+            return WrongNameSymbolsRegExp.Replace(input, string.Empty); ;
+        }
+
+        private bool HasAccess(Message message)
+        {
+            var chatId = message.Chat.Id.ToString(CultureInfo.InvariantCulture);
+            var visitor = App.visitors.GetOrAdd(chatId, (id) =>
+            {
+                bool accessByDefault = App.visitors.Count < maxUniqueVisitors;
+                if (accessByDefault || IsAdmin(chatId))
+                {
+                    var name = AuthorNameInternal(message);
+                    _ = nameMap.AddOrUpdate(chatId, name, (_, _) => name);
+                }
+
+                var arg = new AppVisitor(accessByDefault, nameMap[chatId]);
+                return arg;
+            });
+
             return visitor.access;
         }
 
-        private void HandleMessage(Message message)
+        private async Task<string> PhotoToLink(IEnumerable<PhotoSize> photos)
+        {
+            var photoSize = photos.Last();
+            var file = await bot.GetFile(photoSize.FileId);
+            var baseUrl = new Uri($"https://api.telegram.org/file/bot{token}/");
+            return new Uri(baseUrl, file.FilePath).AbsoluteUri;
+        }
+
+        private void HandleTelegramCallbackQuery(CallbackQuery callbackQuery)
+        {
+            Debug.WriteLine(callbackQuery.Data);
+            if (callbacksMapping.Remove(callbackQuery.Data, out string callbackID))
+            {
+                Debug.WriteLine(callbackID);
+                _ = Task.Run(() =>
+                {
+                    handleAppCallback(new KeyValuePair<string, CallbackCallId>(callbackID, new CallbackCallId(callbackQuery.From.Id.ToString(CultureInfo.InvariantCulture), callbackQuery.Message.MessageId.ToString(CultureInfo.InvariantCulture))));
+                });
+            }
+        }
+
+        private async void HandleTelegramMessage(Message message)
         {
             if (message.From.Id != message.Chat.Id)
             {
                 return;
             }
 
-            if (message.Text == null || message.Text.Length < 1)
+
+            var attachedPhotoString = "";
+            bool isPhoto = message.Photo != null;
+            if (isPhoto)
             {
-                var issueMessage = new ChatMessage()
-                {
-                    chatId = message.Chat.Id.ToString(),
-                    content = Strings.OnlyText
-                };
-                _ = SendMessage(issueMessage).ConfigureAwait(false);
+                attachedPhotoString = $"{Strings.AttachedImage}: \"{await PhotoToLink(message.Photo)}\"";
+            }
+
+            bool isText = message.Text?.Length >= 1 || message.Caption?.Length >= 1 || message.ReplyToMessage?.Text?.Length >= 1 || message.ReplyToMessage?.Caption?.Length >= 1;
+            var chatId = message.Chat.Id.ToString(CultureInfo.InvariantCulture);
+            if (!isText && !isPhoto)
+            {
+                _ = SendMessage(chatId, new ChatMessage(Strings.OnlyTextOrPhoto));
                 return;
             }
 
-            var chatId = message.Chat.Id.ToString();
-            nameMap[chatId] = AuthorNameInternal(message);
+            if (isText && isPhoto)
+            {
+                if (!string.IsNullOrEmpty(message.Text))
+                {
+                    message.Text += $"\n{attachedPhotoString}";
+                }
+                else
+                {
+                    message.Caption += $"\n{attachedPhotoString}";
+                }
+            }
+            else if (isPhoto)
+            {
+                message.Text = attachedPhotoString;
+            }
+
+            if (!HasAccess(message))
+            {
+                _ = SendMessage(chatId, new ChatMessage(Strings.NoAccess));
+            }
+
+            var textOnReply = message.ReplyToMessage?.Text != null ? $"{Strings.Quote}: '{message.ReplyToMessage?.Text}'\n{Strings.UserComment}: '{message.Text ?? message.Caption}'" : null;
+            var textOnReplyCaption = message.ReplyToMessage?.Caption != null ? $"{Strings.Quote}: '{message.ReplyToMessage?.Caption}'\n{Strings.UserComment}: '{message.Text ?? message.Caption}'" : null;
 
             var newMessage = new ChatMessage()
             {
-                chatId = chatId,
-                name = nameMap[chatId],
-                role = "user",
-                content = message.Text
+                Id = message.MessageId.ToString(CultureInfo.InvariantCulture),
+                Name = nameMap[chatId],
+                Role = Strings.RoleUser,
+                Content = textOnReply ?? textOnReplyCaption ?? message.Text ?? message.Caption ?? string.Empty
             };
 
-            if (HasAccess(newMessage))
+            _ = Task.Run(() =>
             {
-                messageSubject.OnNext(newMessage);
-            }
-            else
-            {
-                _ = SendMessage(new ChatMessage
-                {
-                    chatId = chatId,
-                    content = Strings.NoAccess
-                }).ConfigureAwait(false);
-            }
-        }
-
-        public Task NotifyAdmin(string message)
-        {
-            return SendMessage(new ChatMessage
-            {
-                chatId = adminId,
-                content = message
+                handleAppMessage(new KeyValuePair<string, IChatMessage>(chatId, newMessage));
             });
         }
 
-        public Task EditMessage(string chatId, string messageId, string newContent)
+        public void NotifyAdmin(string message)
         {
-            return bot.EditMessageText(new EditMessageText
+            _ = SendMessage(adminId, new ChatMessage(message));
+        }
+
+        public async Task EditTextMessage(string chatId, string messageId, string newContent, IList<CallbackId> messageCallbackIds = null)
+        {
+            _ = await bot.EditMessageText(new EditMessageText
             {
-                ChatId = long.Parse(chatId),
-                MessageId = int.Parse(messageId),
+                ChatId = Utils.StrToLong(chatId),
+                MessageId = Utils.StrToInt(messageId),
                 Text = newContent,
+                ReplyMarkup = GetInlineKeyboardMarkup(messageCallbackIds),
                 ParseMode = parseMode
             });
+        }
+
+        public async Task<bool> DeleteMessage(string chatId, string messageId)
+        {
+            return await bot.DeleteMessage(new DeleteMessage
+            {
+                ChatId = Utils.StrToLong(chatId),
+                MessageId = Utils.StrToInt(messageId)
+            });
+        }
+
+        public async Task<string> SendPhotoMessage(string chatId, Uri imageUrl, string caption)
+        {
+            using var imageStream = await Utils.GetStreamFromUrlAsync(imageUrl);
+            return (await bot.SendPhoto(new SendPhoto
+            {
+                ChatId = Utils.StrToLong(chatId),
+                Photo = new InputFile(imageStream),
+                Caption = caption
+            })).MessageId.ToString(CultureInfo.InvariantCulture);
         }
     }
 }

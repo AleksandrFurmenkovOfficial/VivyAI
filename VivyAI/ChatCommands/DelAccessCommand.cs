@@ -1,17 +1,16 @@
-﻿using System.Threading.Tasks;
-using VivyAI.Interfaces;
+﻿using VivyAI.Interfaces;
 
 namespace VivyAI.Commands
 {
-    internal class DelAccessCommand : IChatCommand
+    internal sealed class DelAccessCommand : IChatCommand
     {
         string IChatCommand.CommandName => "del";
         bool IChatCommand.IsAdminCommand => true;
-        public Task<bool> Execute(IChatMessage message)
+        public void Execute(IChat chat, IChatMessage message)
         {
-            _ = App.visitors.AddOrUpdate(message.chatId, (string id) => { Visitor arg = new(false, "Unknown"); return arg; }, (string id, Visitor arg) => { arg.access = false; return arg; });
-            ShowVisitorsCommand nextCommand = new();
-            return nextCommand.Execute(message);
+            _ = App.visitors.AddOrUpdate(chat.Id, (string id) => { AppVisitor arg = new(false, "Unknown"); return arg; }, (string id, AppVisitor arg) => { arg.access = false; return arg; });
+            var nextCommand = new ShowVisitorsCommand();
+            nextCommand.Execute(chat, message);
         }
     }
 }

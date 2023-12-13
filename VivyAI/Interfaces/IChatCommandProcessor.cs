@@ -1,9 +1,7 @@
-﻿using System.Threading.Tasks;
-
-namespace VivyAI.Interfaces
+﻿namespace VivyAI.Interfaces
 {
     internal interface IChatCommandProcessor
     {
-        public Task<bool> ExecuteIfChatCommand(IChatMessage message);
+        public bool ExecuteIfChatCommand(string chatId, IChatMessage message);
     }
 }

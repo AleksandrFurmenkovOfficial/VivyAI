@@ -2,11 +2,33 @@
 
 namespace VivyAI
 {
-    internal class ChatMessage : IChatMessage
+    internal sealed class ChatMessage : IChatMessage
     {
-        public string chatId { get; set; }
-        public string content { get; set; }
-        public string role { get; set; }
-        public string name { get; set; }
+        public ChatMessage()
+        {
+        }
+
+        public ChatMessage(string content, string role = "", string name = "", Uri imageUrl = null)
+        {
+            Content = content;
+            Role = role;
+            Name = name;
+            ImageUrl = imageUrl;
+        }
+
+        public ChatMessage(string id, string content, string role = "", string name = "", Uri imageUrl = null)
+        {
+            Id = id;
+            Content = content;
+            Role = role;
+            Name = name;
+            ImageUrl = imageUrl;
+        }
+
+        public string Id { get; set; }
+        public string Content { get; set; }
+        public string Role { get; set; }
+        public string Name { get; set; }
+        public Uri ImageUrl { get; set; }
     }
 }
