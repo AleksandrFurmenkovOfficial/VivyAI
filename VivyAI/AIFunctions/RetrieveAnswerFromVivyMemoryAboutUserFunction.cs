@@ -4,7 +4,7 @@ using VivyAI.Interfaces;
 
 namespace VivyAI.AIFunctions
 {
-    internal sealed class RetrieveAnswerFromVivyMemoryAboutUserFunction : UserFileFunctionBase, IFunction
+    internal sealed class RetrieveAnswerFromVivyMemoryAboutUserFunction : IFunction
     {
         internal sealed class QuestionToVivyMemoryAboutUserModel
         {
@@ -19,12 +19,12 @@ namespace VivyAI.AIFunctions
             return new JsonFunction
             {
                 Name = Name,
-                Description = "This function allows Vivy to recall recent data, impressions, facts, and events about user from memory(How much Vivy like the function: 8/10).",
+                Description = "This function allows Vivy to recall impressions, facts, and events about user from memory(How much Vivy like the function: 8/10).",
                 Parameters = new JsonFunctionNonPrimitiveProperty()
                     .AddPrimitive("question", new JsonFunctionProperty
                     {
                         Type = "string",
-                        Description = "A question (about recent impressions, facts and events) to my personal memory about user. If I know the answer, I will recall it."
+                        Description = "A question (about impressions, facts and events) to my personal memory about user. If I know the answer, I will recall it."
                     })
                     .AddRequired("question")
             };
@@ -32,7 +32,7 @@ namespace VivyAI.AIFunctions
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            string path = GetPathToUserAssociatedMemories(api.AIName, userId);
+            string path = Utils.GetPathToUserAssociatedMemories(api.AIName, userId);
             if (!File.Exists(path))
             {
                 return new FuncResult("There are no records in the long-term memory about the user.");

@@ -5,7 +5,7 @@ using VivyAI.Interfaces;
 
 namespace VivyAI.AIFunctions
 {
-    internal sealed class WriteToVivyDiaryFunction : UserFileFunctionBase, IFunction
+    internal sealed class WriteToVivyDiaryFunction : IFunction
     {
         internal sealed class WriteToVivyDiaryModel
         {
@@ -33,7 +33,7 @@ namespace VivyAI.AIFunctions
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            string path = GetPathToUserAssociatedMemories(api.AIName, userId);
+            string path = Utils.GetPathToUserAssociatedMemories(api.AIName, userId);
             string directory = Path.GetDirectoryName(path);
 
             if (!Directory.Exists(directory))

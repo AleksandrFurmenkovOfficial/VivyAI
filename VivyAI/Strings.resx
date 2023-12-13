@@ -162,6 +162,9 @@
   <data name="SomethingGoesWrong" xml:space="preserve">
     <value>Something goes wrong 😓 please try again...</value>
   </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
   <data name="UserComment" xml:space="preserve">
     <value>Комментарий пользователя</value>
   </data>

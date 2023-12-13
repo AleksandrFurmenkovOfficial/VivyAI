@@ -50,7 +50,8 @@ namespace VivyAI
             if (lastMessage.Id == IChatMessage.internalMessage)
                 return;
 
-            await messanger.EditTextMessage(chatId, lastMessage.Id, (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate);
+            var content = (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate;
+            await messanger.EditTextMessage(chatId, lastMessage.Id, content);
         }
 
         private IChatMessage CreateInitMessage()
@@ -70,53 +71,61 @@ namespace VivyAI
 
         private async Task DoStreamResponseToLastMessage(string messageId = null)
         {
-            bool noAnswer = false;
             var responseTargetMessage = await GetResponseTargetMessage(messageId);
-            _ = await openAI.GetAIResponse(messages, async Task<bool> (contentDelta) =>
+            try
             {
-                var returnCode = Interlocked.CompareExchange(ref interruptionCode, IChat.noInterruptionCode, IChat.noInterruptionCode);
-                if (returnCode > 0)
+                bool noAnswer = false;
+                _ = await openAI.GetAIResponse(messages, async Task<bool> (contentDelta) =>
                 {
-                    if (returnCode == IChat.stopCode)
+                    var returnCode = Interlocked.CompareExchange(ref interruptionCode, IChat.noInterruptionCode, IChat.noInterruptionCode);
+                    if (returnCode > 0)
                     {
-                        await UpdateTargetMessage(contentDelta, responseTargetMessage, force: true, final: true);
-                        messages.Add(responseTargetMessage);
+                        if (returnCode == IChat.stopCode)
+                        {
+                            await UpdateTargetMessage(contentDelta, responseTargetMessage, force: true, final: true);
+                            messages.Add(responseTargetMessage);
+                        }
+
+                        if (returnCode == IChat.cancelCode)
+                        {
+                            noAnswer = true;
+                            await DeleteMessage(responseTargetMessage.Id);
+                        }
+
+                        return true;
                     }
 
-                    if (returnCode == IChat.cancelCode)
+                    if (contentDelta.messages.Count == 0)
                     {
-                        noAnswer = true;
-                        await DeleteMessage(responseTargetMessage.Id);
+                        await UpdateTargetMessage(contentDelta, responseTargetMessage);
+                        return false;
                     }
 
+                    var resultMessage = contentDelta.messages.First();
+                    responseTargetMessage.Content = resultMessage?.Content ?? "";
+                    messages.Add(resultMessage);
+                    noAnswer = true;
+                    await DeleteMessage(responseTargetMessage.Id);
+                    bool imageMessage = resultMessage.ImageUrl != null;
+                    if (imageMessage)
+                    {
+                        _ = await messanger.SendPhotoMessage(chatId, resultMessage.ImageUrl);
+                    }
+
+                    await DoStreamResponseToLastMessage(); // todo:
                     return true;
-                }
+                });
 
-                if (contentDelta.messages.Count == 0)
+                if (!noAnswer && responseTargetMessage.Content.Length > 0)
                 {
-                    await UpdateTargetMessage(contentDelta, responseTargetMessage);
-                    return false;
+                    await messanger.EditTextMessage(chatId, responseTargetMessage.Id, responseTargetMessage.Content, new List<CallbackId> { new CallbackId(ContinueCallback.cName), new CallbackId(RegenerateCallback.cName) });
+                    messages.Add(responseTargetMessage);
                 }
-
-                var resultMessage = contentDelta.messages.First();
-                responseTargetMessage.Content = resultMessage?.Content ?? "";
-                messages.Add(resultMessage);
-                noAnswer = true;
-                await DeleteMessage(responseTargetMessage.Id);
-                bool imageMessage = resultMessage.ImageUrl != null;
-                if (imageMessage)
-                {
-                    _ = await messanger.SendPhotoMessage(chatId, resultMessage.ImageUrl);
-                }
-
-                await DoStreamResponseToLastMessage(); // todo:
-                return true;
-            });
-
-            if (!noAnswer && responseTargetMessage.Content.Length > 0)
+            }
+            catch (Exception)
             {
-                await messanger.EditTextMessage(chatId, responseTargetMessage.Id, responseTargetMessage.Content, new List<CallbackId> { new CallbackId(ContinueCallback.cName), new CallbackId(RegenerateCallback.cName) });
-                messages.Add(responseTargetMessage);
+                await DeleteMessage(responseTargetMessage.Id);
+                throw;
             }
         }
 

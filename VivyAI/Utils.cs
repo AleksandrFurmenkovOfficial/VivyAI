@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Reflection;
 
 namespace VivyAI
 {
@@ -24,7 +25,7 @@ namespace VivyAI
             using var response = await client.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Error: {response.StatusCode}");
+                Console.WriteLine($"GetJsonResponse error: {response.StatusCode}");
                 return null;
             }
 
@@ -40,6 +41,12 @@ namespace VivyAI
         public static long StrToLong(string s)
         {
             return long.Parse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        public static string GetPathToUserAssociatedMemories(string aiName, string userId)
+        {
+            string directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            return $"{directory}/../VivyMemory/{aiName}_{userId}.txt";
         }
     }
 }

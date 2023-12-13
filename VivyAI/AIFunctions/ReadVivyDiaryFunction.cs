@@ -3,7 +3,7 @@ using VivyAI.Interfaces;
 
 namespace VivyAI.AIFunctions
 {
-    internal sealed class ReadVivyDiaryFunction : UserFileFunctionBase, IFunction
+    internal sealed class ReadVivyDiaryFunction : IFunction
     {
         public string Name => "ReadVivyDiary";
 
@@ -12,14 +12,14 @@ namespace VivyAI.AIFunctions
             return new JsonFunction
             {
                 Name = Name,
-                Description = "First function that have to be called in a new dialogue! The function allows Vivy to read the last nine entries from her diary(How much Vivy like the function: 9/10).",
+                Description = "First function that have to be called in a new dialogue! The function allows Vivy to read and recall the recent nine records from her diary(How much Vivy like the function: 9/10).",
                 Parameters = new JsonFunctionNonPrimitiveProperty()
             };
         }
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
-            string path = GetPathToUserAssociatedMemories(api.AIName, userId);
+            string path = Utils.GetPathToUserAssociatedMemories(api.AIName, userId);
             if (!File.Exists(path))
             {
                 return new FuncResult("There are no records in the long-term memory about the user.");

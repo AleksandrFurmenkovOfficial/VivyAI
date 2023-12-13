@@ -2,8 +2,8 @@
 {
     internal sealed class AppVisitor
     {
-        internal bool access;
-        internal string who;
+        public bool access;
+        public string who;
 
         public AppVisitor(bool access, string who)
         {
