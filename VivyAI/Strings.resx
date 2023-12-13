@@ -135,6 +135,9 @@
   <data name="EnglishModeNow" xml:space="preserve">
     <value>"AI now in english teacher mode."</value>
   </data>
+  <data name="InitAnswerTemplate" xml:space="preserve">
+    <value>...</value>
+  </data>
   <data name="NoAccess" xml:space="preserve">
     <value>You do not have access to the bot. Please contact a bot administrator to request access.</value>
   </data>

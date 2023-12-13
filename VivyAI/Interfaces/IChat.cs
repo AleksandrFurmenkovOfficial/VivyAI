@@ -18,7 +18,5 @@
         void Stop();
         void Regenerate(string messageId);
         void Continue();
-        bool IncreaseTemp();
-        bool DecreaseTemp();
     }
 }

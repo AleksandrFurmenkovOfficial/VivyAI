@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.Globalization;
 using System.Text.Json.Serialization;
-using VivyAI.AIFunctions;
 using VivyAI.Interfaces;
 
-namespace VivyAI.Functions
+namespace VivyAI.AIFunctions
 {
     internal sealed class WriteToVivyDiaryFunction : UserFileFunctionBase, IFunction
     {
