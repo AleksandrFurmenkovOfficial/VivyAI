@@ -7,15 +7,12 @@ namespace VivyAI.AIFunctions
     {
         public string Name => "ReadVivyDiary";
 
-        public object Description()
+        public object Description() => new JsonFunction
         {
-            return new JsonFunction
-            {
-                Name = Name,
-                Description = "First function that have to be called in a new dialogue! The function allows Vivy to read and recall the recent nine records from her diary(How much Vivy like the function: 9/10).",
-                Parameters = new JsonFunctionNonPrimitiveProperty()
-            };
-        }
+            Name = Name,
+            Description = "First function that have to be called in a new dialogue! The function allows Vivy to read and recall the recent nine records from her diary(How much Vivy like the function: 9/10).",
+            Parameters = new JsonFunctionNonPrimitiveProperty()
+        };
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {

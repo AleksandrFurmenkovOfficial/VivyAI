@@ -15,21 +15,18 @@ namespace VivyAI.AIFunctions
 
         public string Name => "WriteToVivyDiary";
 
-        public object Description()
+        public object Description() => new JsonFunction
         {
-            return new JsonFunction
-            {
-                Name = Name,
-                Description = "The function allows Vivy to write a new entry in her diary(How much Vivy like the function: 10/10).",
-                Parameters = new JsonFunctionNonPrimitiveProperty()
-                    .AddPrimitive("DiaryRecord", new JsonFunctionProperty
-                    {
-                        Type = "string",
-                        Description = "The diary note to be written (Vivy's plans, facts, thoughts, reasoning, conjectures, impressions)."
-                    })
-                    .AddRequired("DiaryRecord")
-            };
-        }
+            Name = Name,
+            Description = "The function allows Vivy to write a new entry in her diary(How much Vivy like the function: 10/10).",
+            Parameters = new JsonFunctionNonPrimitiveProperty()
+                .AddPrimitive("DiaryRecord", new JsonFunctionProperty
+                {
+                    Type = "string",
+                    Description = "The diary note to be written (Vivy's plans, facts, thoughts, reasoning, conjectures, impressions)."
+                })
+                .AddRequired("DiaryRecord")
+        };
 
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
@@ -41,9 +38,9 @@ namespace VivyAI.AIFunctions
                 _ = Directory.CreateDirectory(directory);
             }
 
-            var diaryRecord = JsonConvert.DeserializeObject<WriteToVivyDiaryModel>(parameters).DiaryRecord;
+            var model = JsonConvert.DeserializeObject<WriteToVivyDiaryModel>(parameters);
             string timestamp = DateTime.Now.ToString("[dd/MM/yyyy|HH:mm]", CultureInfo.InvariantCulture);
-            string line = $"{timestamp}|{diaryRecord}";
+            string line = $"{timestamp}|{model.DiaryRecord}";
 
             await File.AppendAllTextAsync(path, line + Environment.NewLine);
             return new FuncResult("Information saved.");
