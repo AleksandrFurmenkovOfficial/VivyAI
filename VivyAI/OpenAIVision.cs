@@ -46,7 +46,7 @@ namespace VivyAI
             return null;
         }
 
-        public async Task<string> GetImageDescription(string imageUrl, string question)
+        public async Task<string> GetImageDescription(Uri imageUrl, string question)
         {
             var payload = new
             {
@@ -67,7 +67,7 @@ namespace VivyAI
                         content = new object[]
                         {
                             new { type = "text", text = string.IsNullOrEmpty(question) ? question : Strings.WhatIsOnTheImage },
-                            new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{await Utils.EncodeImageToBase64(new Uri(imageUrl))}" } }
+                            new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{await Utils.EncodeImageToBase64(imageUrl)}" } }
                         }
                     }
                 },

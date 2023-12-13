@@ -1,4 +1,4 @@
-﻿using VivyAI.Commands;
+﻿using VivyAI.ChatCommands;
 using VivyAI.Interfaces;
 
 namespace VivyAI

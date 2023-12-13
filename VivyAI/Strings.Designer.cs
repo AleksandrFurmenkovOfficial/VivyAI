@@ -115,6 +115,15 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ....
+        /// </summary>
+        internal static string InitAnswerTemplate {
+            get {
+                return ResourceManager.GetString("InitAnswerTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You do not have access to the bot. Please contact a bot administrator to request access..
         /// </summary>
         internal static string NoAccess {

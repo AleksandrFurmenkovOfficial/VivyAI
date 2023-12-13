@@ -4,7 +4,7 @@ using Rystem.OpenAi.Chat;
 using System.Data;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
-using VivyAI.Functions;
+using VivyAI.AIFunctions;
 using VivyAI.Interfaces;
 
 namespace VivyAI

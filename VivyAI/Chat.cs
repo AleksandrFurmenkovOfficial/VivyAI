@@ -9,7 +9,6 @@ namespace VivyAI
     internal sealed class Chat : IChat, IDisposable
     {
         private const int messageUpdateStepInCharsCount = 42;
-        private const string initAnswerTemplate = "...";
 
         private readonly string chatId;
         private readonly IOpenAI openAI;
@@ -51,7 +50,7 @@ namespace VivyAI
             if (lastMessage.Id == IChatMessage.internalMessage)
                 return;
 
-            await messanger.EditTextMessage(chatId, lastMessage.Id, (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : initAnswerTemplate);
+            await messanger.EditTextMessage(chatId, lastMessage.Id, (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate);
         }
 
         private IChatMessage CreateInitMessage()
@@ -60,7 +59,7 @@ namespace VivyAI
             {
                 Role = Strings.RoleAssistant,
                 Name = openAI.AIName,
-                Content = initAnswerTemplate
+                Content = Strings.InitAnswerTemplate
             };
         }
 
@@ -176,8 +175,10 @@ namespace VivyAI
             dynamic jsonObj = JsonConvert.DeserializeObject(jsonText);
 
             openAI.EnableFunctions = jsonObj?.EnableFunctions?.Value ?? false;
-            openAI.AIName = jsonObj?.AIName?.Value ?? Strings.DefaultName;
-            openAI.SystemMessage = jsonObj?.AISettings?.Value ?? Strings.DefaultDescription;
+            var name = jsonObj?.AIName?.Value.Trim();
+            openAI.AIName = string.IsNullOrEmpty(name) ? Strings.DefaultName : name;
+            var settings = jsonObj?.AISettings?.Value?.Trim();
+            openAI.SystemMessage = string.IsNullOrEmpty(settings) ? Strings.DefaultDescription : settings;
 
             if (jsonObj.Examples != null)
             {
@@ -227,16 +228,6 @@ namespace VivyAI
         public async void Continue()
         {
             await DoResponseToMessage(new ChatMessage(id: IChatMessage.internalMessage, Strings.Continue, Strings.RoleSystem, Strings.RoleSystem));
-        }
-
-        public bool IncreaseTemp()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool DecreaseTemp()
-        {
-            throw new NotImplementedException();
         }
 
         public void Dispose()

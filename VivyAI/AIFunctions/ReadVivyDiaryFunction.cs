@@ -1,8 +1,7 @@
 ﻿using System.Text.Json.Serialization;
-using VivyAI.AIFunctions;
 using VivyAI.Interfaces;
 
-namespace VivyAI.Functions
+namespace VivyAI.AIFunctions
 {
     internal sealed class ReadVivyDiaryFunction : UserFileFunctionBase, IFunction
     {

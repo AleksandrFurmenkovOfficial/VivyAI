@@ -21,6 +21,6 @@
 
         Task<Uri> GetImage(string request, string userId);
 
-        Task<string> GetImageDescription(string image, string question);
+        Task<string> GetImageDescription(Uri image, string question);
     }
 }

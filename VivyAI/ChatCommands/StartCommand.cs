@@ -1,6 +1,6 @@
 ﻿using VivyAI.Interfaces;
 
-namespace VivyAI.Commands
+namespace VivyAI.ChatCommands
 {
     internal sealed class StartCommand : IChatCommand
     {

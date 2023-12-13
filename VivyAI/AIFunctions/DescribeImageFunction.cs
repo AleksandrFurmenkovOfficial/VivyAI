@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using VivyAI.Interfaces;
 
-namespace VivyAI.Functions
+namespace VivyAI.AIFunctions
 {
     internal sealed class DescribeImageFunction : IFunction
     {
@@ -42,7 +42,7 @@ namespace VivyAI.Functions
         public async Task<FuncResult> Call(IOpenAI api, dynamic parameters, string userId)
         {
             var imageDetailedDescriptionRequest = JsonConvert.DeserializeObject<ImageDetailedDescriptionRequestModel>(parameters);
-            return new FuncResult(await api.GetImageDescription(imageDetailedDescriptionRequest.ImageURLToDescribe, imageDetailedDescriptionRequest.QuestionAboutImage));
+            return new FuncResult(await api.GetImageDescription(new Uri(imageDetailedDescriptionRequest.ImageURLToDescribe), imageDetailedDescriptionRequest.QuestionAboutImage));
         }
     }
 }
