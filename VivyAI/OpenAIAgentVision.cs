@@ -4,7 +4,7 @@ using System.Text;
 
 namespace VivyAI
 {
-    internal sealed partial class OpenAI
+    internal sealed partial class OpenAIAgent
     {
         private const string apiBase = "https://api.openai.com/v1";
         private const string getImageModel = "dall-e-3";
@@ -33,19 +33,9 @@ namespace VivyAI
                 user = userId
             };
 
-            try
-            {
-                using var request = GetRequest(payload, $"{apiBase}/images/generations");
-                dynamic response = await Utils.GetJsonResponse(request);
-                string result = response?.data[0]?.url ?? string.Empty;
-                return new Uri(result);
-            }
-            catch (Exception e)
-            {
-                App.LogException(e);
-            }
-
-            return null;
+            using var request = GetRequest(payload, $"{apiBase}/images/generations");
+            dynamic response = await Utils.GetJsonResponse(request).ConfigureAwait(false);
+            return new Uri((string)response.data[0].url);
         }
 
         public async Task<string> GetImageDescription(Uri imageUrl, string question)
@@ -69,26 +59,16 @@ namespace VivyAI
                         content = new object[]
                         {
                             new { type = "text", text = string.IsNullOrEmpty(question) ? question : Strings.WhatIsOnTheImage },
-                            new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{await Utils.EncodeImageToBase64(imageUrl)}" } }
+                            new { type = "image_url", image_url = new { url = $"data:image/jpeg;base64,{await Utils.EncodeImageToBase64(imageUrl).ConfigureAwait(false)}" } }
                         }
                     }
                 },
                 max_tokens = 512
             };
 
-            try
-            {
-                using var request = GetRequest(payload, $"{apiBase}/chat/completions");
-                dynamic response = await Utils.GetJsonResponse(request);
-                string result = response?.choices[0]?.message?.content ?? string.Empty;
-                return result;
-            }
-            catch (Exception e)
-            {
-                App.LogException(e);
-            }
-
-            return string.Empty;
+            using var request = GetRequest(payload, $"{apiBase}/chat/completions");
+            dynamic response = await Utils.GetJsonResponse(request).ConfigureAwait(false);
+            return response.choices[0].message.content;
         }
     }
 }

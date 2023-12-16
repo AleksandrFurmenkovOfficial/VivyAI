@@ -26,7 +26,7 @@ namespace VivyAI
 
         private void AddCommand(IChatCommand command)
         {
-            commands.Add($"/{command.CommandName}", command);
+            commands.Add($"/{command.Name}", command);
         }
 
         public bool ExecuteIfChatCommand(string chatId, IChatMessage message)

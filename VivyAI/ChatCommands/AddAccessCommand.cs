@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class AddAccessCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "add";
+        string IChatCommand.Name => "add";
         bool IChatCommand.IsAdminCommand => true;
         public void Execute(IChat chat, IChatMessage message)
         {

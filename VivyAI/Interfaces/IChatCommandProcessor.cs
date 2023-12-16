@@ -2,6 +2,6 @@
 {
     internal interface IChatCommandProcessor
     {
-        public bool ExecuteIfChatCommand(string chatId, IChatMessage message);
+        bool ExecuteIfChatCommand(string chatId, IChatMessage message);
     }
 }

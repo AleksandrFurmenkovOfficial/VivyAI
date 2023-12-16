@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class ShowVisitorsCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "vis";
+        string IChatCommand.Name => "vis";
         bool IChatCommand.IsAdminCommand => true;
         public void Execute(IChat chat, IChatMessage message)
         {

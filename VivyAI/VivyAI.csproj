@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <AnalysisLevel>preview-recommended</AnalysisLevel>
     <NeutralLanguage>ru</NeutralLanguage>
   </PropertyGroup>
 
@@ -27,13 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Chat.cs~RF2d44ce.TMP" />
-    <None Remove="Messanger.cs~RF332c260f.TMP" />
-    <None Remove="OpenAI.cs~RF3d21b4b5.TMP" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.55" />
     <PackageReference Include="RxTelegram.Bot" Version="6.9.1" />
     <PackageReference Include="Rystem.OpenAi" Version="3.3.11" />
     <PackageReference Include="System.Reactive.Core" Version="6.0.0" />

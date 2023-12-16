@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class CommonCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "common";
+        string IChatCommand.Name => "common";
         bool IChatCommand.IsAdminCommand => false;
         public void Execute(IChat chat, IChatMessage message)
         {

@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class StartCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "start";
+        string IChatCommand.Name => "start";
         bool IChatCommand.IsAdminCommand => false;
         public void Execute(IChat chat, IChatMessage message)
         {

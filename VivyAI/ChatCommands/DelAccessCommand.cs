@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class DelAccessCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "del";
+        string IChatCommand.Name => "del";
         bool IChatCommand.IsAdminCommand => true;
         public void Execute(IChat chat, IChatMessage message)
         {
