@@ -2,15 +2,16 @@
 using Rystem.OpenAi;
 using Rystem.OpenAi.Chat;
 using System.Data;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using VivyAI.AIFunctions;
 using VivyAI.Interfaces;
 
 namespace VivyAI
 {
-    internal sealed partial class OpenAI : IOpenAI
+    internal sealed partial class OpenAIAgent : IAIAgent
     {
-        private readonly Dictionary<string, IFunction> functions;
+        private readonly Dictionary<string, IAIFunction> functions;
         private static readonly ThreadLocal<Random> random = new(() => new Random(Guid.NewGuid().GetHashCode()));
 
         private const string gptModel = "gpt-4-1106-preview";
@@ -26,43 +27,44 @@ namespace VivyAI
 
         private readonly string chatId;
         private readonly string token;
+        private readonly IOpenAi openAIAPI;
 
-        public OpenAI(string chatId, string token)
+        public OpenAIAgent(string chatId, string token)
         {
             this.chatId = chatId;
             this.token = token;
 
+            _ = OpenAiService.Instance.AddOpenAi(settings => { settings.ApiKey = token; }, "NoDI");
+            this.openAIAPI = OpenAiService.Factory.Create("NoDI");
 
-
-            functions = new Dictionary<string, IFunction>();
+            functions = new Dictionary<string, IAIFunction>();
             RegisterAIFunctions();
         }
 
-        private IOpenAiChat API()
+        private IOpenAi GetAPI()
         {
-            _ = OpenAiService.Instance.AddOpenAi(settings => { settings.ApiKey = token; }, "NoDI");
-            return OpenAiService.Factory.Create("NoDI").Chat;
+            return openAIAPI;
         }
 
         private void RegisterAIFunctions()
         {
-            AddFunction(new DrawImageByDescriptionFunction());
-            AddFunction(new DescribeImageFunction());
+            AddFunction(new DrawImageByDescriptionAIFunction());
+            AddFunction(new DescribeImageAIFunction());
 
-            AddFunction(new ReadVivyDiaryFunction());
-            AddFunction(new RetrieveAnswerFromVivyMemoryAboutUserFunction());
-            AddFunction(new WriteToVivyDiaryFunction());
+            AddFunction(new ReadVivyDiaryAIFunction());
+            AddFunction(new RetrieveAnswerFromVivyMemoryAboutUserAIFunction());
+            AddFunction(new WriteToVivyDiaryAIFunction());
 
-            AddFunction(new ExtractInformationFromURLFunction());
-            AddFunction(new AskMyselfFunction());
+            AddFunction(new ExtractInformationFromURLAIFunction());
+            AddFunction(new AskMyselfAIFunction());
         }
 
-        private void AddFunction(IFunction function)
+        private void AddFunction(IAIFunction function)
         {
             functions.Add(function.Name, function);
         }
 
-        private static ChatMessage CreateFunctionResultMessage(string functionName, FuncResult result)
+        private static ChatMessage CreateFunctionResultMessage(string functionName, AIFunctionResult result)
         {
             return new ChatMessage
             {
@@ -76,22 +78,22 @@ namespace VivyAI
         private async Task<bool> CallFunction(string functionName,
                                               string functionArguments,
                                               string userId,
-                                              Func<AnswerStreamStep, Task<bool>> streamGetter)
+                                              Func<ResponseStreamChunk, Task<bool>> streamGetter)
         {
             ChatMessage resultMessage;
             try
             {
-                Console.WriteLine($"Vivy calls function {functionName}({functionArguments})");
-                var result = await functions[functionName].Call(this, functionArguments, userId);
+                Debug.WriteLine($"Vivy calls function {functionName}({functionArguments})");
+                var result = await functions[functionName].Call(this, functionArguments, userId).ConfigureAwait(false);
                 resultMessage = CreateFunctionResultMessage(functionName, result);
             }
             catch (Exception e)
             {
                 App.LogException(e);
-                resultMessage = CreateFunctionResultMessage(functionName, new FuncResult("Exception: Can't call function " + functionName + " (" + functionArguments + "); Possible issues:\n1. function name is incorrect\n2. wrong arguments are provided\n3. internal function error\nException message: " + e.Message));
+                resultMessage = CreateFunctionResultMessage(functionName, new AIFunctionResult("Exception: Can't call function " + functionName + " (" + functionArguments + "); Possible issues:\n1. function name is incorrect\n2. wrong arguments are provided\n3. internal function error\nException message: " + e.Message));
             }
 
-            return await streamGetter(new AnswerStreamStep(resultMessage));
+            return await streamGetter(new ResponseStreamChunk(resultMessage)).ConfigureAwait(false);
         }
 
         private static List<Rystem.OpenAi.Chat.ChatMessage> ConvertMessages(List<IChatMessage> messages)
@@ -109,10 +111,12 @@ namespace VivyAI
             };
         }
 
-        public async Task<bool> GetAIResponse(List<IChatMessage> messages, Func<AnswerStreamStep, Task<bool>> streamGetter)
+        public async Task GetAIResponse(
+            List<IChatMessage> messages,
+            Func<ResponseStreamChunk, Task<bool>> streamGetter)
         {
             var convertedMessages = ConvertMessages(messages);
-            return await GetAIResponseImpl(convertedMessages, streamGetter, chatId);
+            await GetAIResponseImpl(convertedMessages, streamGetter, chatId).ConfigureAwait(false);
         }
 
         private void AddFunctions(ChatRequestBuilder builder)
@@ -125,20 +129,24 @@ namespace VivyAI
 
         private static double GetTemperature()
         {
-            const double minTemperature = 0.2;
+            const double minTemperature = 0.3;
             const double oneThird = 1.0 / 3.0;
             return minTemperature + (random.Value.NextDouble() * oneThird);
         }
 
-        private async Task<bool> GetAIResponseImpl(List<Rystem.OpenAi.Chat.ChatMessage> convertedMessages, Func<AnswerStreamStep, Task<bool>> streamGetter, string userId)
+        private async Task GetAIResponseImpl(
+            List<Rystem.OpenAi.Chat.ChatMessage> convertedMessages,
+            Func<ResponseStreamChunk, Task<bool>> streamGetter,
+            string userId)
         {
+            bool isFunctionCall = false;
             bool isCancelled = false;
-
             try
             {
-                var messageBuilder = API().Request(new Rystem.OpenAi.Chat.ChatMessage { Role = ChatRole.System, Content = systemMessage })
-                                          .WithModel(gptModel)
-                                          .WithTemperature(GetTemperature());
+                var api = GetAPI();
+                var messageBuilder = api.Chat.Request(new Rystem.OpenAi.Chat.ChatMessage { Role = ChatRole.System, Content = systemMessage })
+                                             .WithModel(gptModel)
+                                             .WithTemperature(GetTemperature());
 
                 if (enableFunctions)
                 {
@@ -154,21 +162,16 @@ namespace VivyAI
                 string currentFunctionArguments = "";
                 await foreach (var x in messageBuilder.ExecuteAsStreamAsync())
                 {
-                    if (isCancelled)
-                    {
-                        return isCancelled;
-                    }
-
                     var newPartOfResponse = x.LastChunk?.Choices[0];
                     var messageDelta = newPartOfResponse?.Delta?.Content ?? "";
                     var functionDelta = newPartOfResponse?.Delta?.Function;
 
                     if (!string.IsNullOrEmpty(messageDelta))
                     {
-                        isCancelled = await streamGetter(new AnswerStreamStep(messageDelta));
+                        isCancelled = await streamGetter(new ResponseStreamChunk(messageDelta)).ConfigureAwait(false);
                         if (isCancelled)
                         {
-                            return isCancelled;
+                            return;
                         }
                     }
                     else if (functionDelta != null)
@@ -184,7 +187,9 @@ namespace VivyAI
                     }
                     else if (newPartOfResponse.FinishReason == "function_call")
                     {
-                        return await CallFunction(currentFunction, currentFunctionArguments, userId, streamGetter);
+                        isFunctionCall = true;
+                        await CallFunction(currentFunction, currentFunctionArguments, userId, streamGetter).ConfigureAwait(false);
+                        return;
                     }
                 }
             }
@@ -192,15 +197,21 @@ namespace VivyAI
             {
                 App.LogException(e);
             }
-
-            return isCancelled;
+            finally
+            {
+                if (!isFunctionCall && !isCancelled)
+                {
+                    await streamGetter(new ResponseStreamChunk()).ConfigureAwait(false);
+                }
+            }
         }
 
         private async Task<string> GetSingleResponse(string model, string setting, string question, string data)
         {
-            var request = API().Request(new Rystem.OpenAi.Chat.ChatMessage { Role = ChatRole.System, Content = setting })
-                               .WithModel(model)
-                               .WithTemperature(GetTemperature());
+            var api = GetAPI();
+            var request = api.Chat.Request(new Rystem.OpenAi.Chat.ChatMessage { Role = ChatRole.System, Content = setting })
+                                  .WithModel(model)
+                                  .WithTemperature(GetTemperature());
 
 
             if (!string.IsNullOrEmpty(data))
@@ -209,12 +220,12 @@ namespace VivyAI
             }
 
             _ = request.AddMessage(new Rystem.OpenAi.Chat.ChatMessage { Role = ChatRole.User, Content = question });
-            return (await request.ExecuteAsync()).Choices[0].Message.Content;
+            return (await request.ExecuteAsync().ConfigureAwait(false)).Choices[0].Message.Content;
         }
 
         public async Task<string> GetSingleResponse(string setting, string question, string data)
         {
-            return await GetSingleResponse(gptModel, setting, question, data);
+            return await GetSingleResponse(gptModel, setting, question, data).ConfigureAwait(false);
         }
     }
 }

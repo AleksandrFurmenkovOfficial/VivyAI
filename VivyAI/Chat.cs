@@ -1,27 +1,28 @@
 ﻿using Newtonsoft.Json;
 using System.Reflection;
 using VivyAI.Interfaces;
-using VivyAI.MessageCallbacks;
+using VivyAI.MessageActions;
 using File = System.IO.File;
 
 namespace VivyAI
 {
+
     internal sealed class Chat : IChat, IDisposable
     {
         private const int messageUpdateStepInCharsCount = 42;
 
         private readonly string chatId;
-        private readonly IOpenAI openAI;
+        private readonly IAIAgent openAI;
         private readonly IMessanger messanger;
 
-        private readonly List<IChatMessage> messages = new();
-        private readonly SemaphoreSlim semaphore = new(1, 1);
+        private readonly List<List<IChatMessage>> messages = new();
+        private readonly SemaphoreSlim messagesLock = new(1, 1);
 
-        private int interruptionCode = IChat.noInterruptionCode;
+        private long interruptionCode = IChat.noInterruptionCode;
 
         public string Id { get => chatId; }
 
-        public Chat(string chatId, IOpenAI openAI, IMessanger messanger)
+        public Chat(string chatId, IAIAgent openAI, IMessanger messanger)
         {
             this.openAI = openAI;
             this.messanger = messanger;
@@ -33,25 +34,35 @@ namespace VivyAI
         public async Task DoResponseToMessage(IChatMessage message)
         {
             _ = Interlocked.Exchange(ref interruptionCode, IChat.noInterruptionCode);
-            await RemoveButtonsFromLastAssistantMessage();
-            messages.Add(message);
-            await DoStreamResponseToLastMessage();
+            await UpdateLastMessageButtons().ConfigureAwait(false);
+            messages.Add(new List<IChatMessage> { message });
+            await DoStreamResponseToLastMessage().ConfigureAwait(false);
         }
 
-        private async Task RemoveButtonsFromLastAssistantMessage()
+        private async Task UpdateLastMessageButtons(bool isAdd = false)
         {
             if (messages.Count == 0)
                 return;
 
-            var lastMessage = messages.Last();
+            var lastMessages = messages.Last();
+            var lastMessage = lastMessages.Last();
+
             if (lastMessage.Role != Strings.RoleAssistant)
                 return;
 
-            if (lastMessage.Id == IChatMessage.internalMessage)
+            if (lastMessage.MessageId == IChatMessage.internalMessage)
                 return;
 
             var content = (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate;
-            await messanger.EditTextMessage(chatId, lastMessage.Id, content);
+            var actions = isAdd ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : null;
+            try
+            {
+                await messanger.EditTextMessage(chatId, lastMessage.MessageId, content, actions).ConfigureAwait(false);
+            }
+            catch
+            {
+                await messanger.EditMessageCaption(chatId, lastMessage.MessageId, content, actions).ConfigureAwait(false);
+            }
         }
 
         private IChatMessage CreateInitMessage()
@@ -66,112 +77,135 @@ namespace VivyAI
 
         private async Task DeleteMessage(string messageId)
         {
-            _ = await messanger.DeleteMessage(chatId, messageId);
+            _ = await messanger.DeleteMessage(chatId, messageId).ConfigureAwait(false);
         }
 
-        private async Task DoStreamResponseToLastMessage(string messageId = null)
+        private void AddAnswerMessage(IChatMessage responseTargetMessage)
         {
-            var responseTargetMessage = await GetResponseTargetMessage(messageId);
+            messages.Last().Add(responseTargetMessage);
+        }
+
+        private async Task DoStreamResponseToLastMessage(IChatMessage responseTargetMessage = null, bool isMediaCaption = false)
+        {
+            responseTargetMessage = await SendResponseTargetMessage(responseTargetMessage).ConfigureAwait(false);
             try
             {
-                bool noAnswer = false;
-                _ = await openAI.GetAIResponse(messages, async Task<bool> (contentDelta) =>
+                await openAI.GetAIResponse(messages.SelectMany(subList => subList).ToList(), async Task<bool> (contentDelta) =>
                 {
-                    var returnCode = Interlocked.CompareExchange(ref interruptionCode, IChat.noInterruptionCode, IChat.noInterruptionCode);
-                    if (returnCode > 0)
+                    var returnCode = Interlocked.Read(ref interruptionCode);
+                    if (returnCode == IChat.cancelCode)
                     {
-                        if (returnCode == IChat.stopCode)
-                        {
-                            await UpdateTargetMessage(contentDelta, responseTargetMessage, force: true, final: true);
-                            messages.Add(responseTargetMessage);
-                        }
-
-                        if (returnCode == IChat.cancelCode)
-                        {
-                            noAnswer = true;
-                            await DeleteMessage(responseTargetMessage.Id);
-                        }
-
+                        await DeleteMessage(responseTargetMessage.MessageId).ConfigureAwait(false);
                         return true;
                     }
 
-                    if (contentDelta.messages.Count == 0)
-                    {
-                        await UpdateTargetMessage(contentDelta, responseTargetMessage);
-                        return false;
-                    }
-
-                    var resultMessage = contentDelta.messages.First();
-                    responseTargetMessage.Content = resultMessage?.Content ?? "";
-                    messages.Add(resultMessage);
-                    noAnswer = true;
-                    await DeleteMessage(responseTargetMessage.Id);
-                    bool imageMessage = resultMessage.ImageUrl != null;
-                    if (imageMessage)
-                    {
-                        _ = await messanger.SendPhotoMessage(chatId, resultMessage.ImageUrl);
-                    }
-
-                    await DoStreamResponseToLastMessage(); // todo:
-                    return true;
-                });
-
-                if (!noAnswer && responseTargetMessage.Content.Length > 0)
-                {
-                    await messanger.EditTextMessage(chatId, responseTargetMessage.Id, responseTargetMessage.Content, new List<CallbackId> { new CallbackId(ContinueCallback.cName), new CallbackId(RegenerateCallback.cName) });
-                    messages.Add(responseTargetMessage);
-                }
+                    return await ProcessAsyncResponse(responseTargetMessage, contentDelta, isMediaCaption).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }
             catch (Exception)
             {
-                await DeleteMessage(responseTargetMessage.Id);
+                await DeleteMessage(responseTargetMessage.MessageId).ConfigureAwait(false);
                 throw;
             }
         }
 
-        private async Task UpdateTargetMessage(AnswerStreamStep contentDelta, IChatMessage responseTargetMessage, bool force = false, bool final = false)
+        private async Task<bool> ProcessAsyncResponse(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta, bool isMediaCaption)
         {
-            responseTargetMessage.Content += contentDelta.textStep;
-            if (responseTargetMessage.Content.Length % messageUpdateStepInCharsCount == 0 || force)
+            bool textStreamUpdate = contentDelta.messages.Count == 0;
+            if (textStreamUpdate)
             {
-                await messanger.EditTextMessage(chatId, responseTargetMessage.Id, responseTargetMessage.Content, final ? new List<CallbackId> { new CallbackId(ContinueCallback.cName), new CallbackId(RegenerateCallback.cName) } : new List<CallbackId> { new CallbackId(StopCallback.cName) });
+                var returnCode = Interlocked.Read(ref interruptionCode);
+                var finalUpdate = contentDelta.isEnd || returnCode == IChat.stopCode;
+                await UpdateTargetMessage(responseTargetMessage, contentDelta.textStep, finalUpdate: finalUpdate, isMediaCaption: isMediaCaption).ConfigureAwait(false);
+                if (finalUpdate)
+                {
+                    AddAnswerMessage(responseTargetMessage);
+                    return true;
+                }
+
+                return false;
+            }
+
+            _ = await ProcessFunctionResult(responseTargetMessage, contentDelta).ConfigureAwait(false);
+            return true;
+        }
+
+        private async Task<bool> ProcessFunctionResult(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta)
+        {
+            var functionResultMessage = contentDelta.messages.First();
+            functionResultMessage.MessageId = IChatMessage.internalMessage;
+            AddAnswerMessage(functionResultMessage);
+
+            bool imageMessage = functionResultMessage.ImageUrl != null;
+            if (imageMessage)
+            {
+                await DeleteMessage(responseTargetMessage.MessageId).ConfigureAwait(false);
+                var responseTargetMessageNew = new ChatMessage(messageId: IChatMessage.internalMessage, Strings.InitAnswerTemplate, Strings.RoleAssistant, openAI.AIName);
+                responseTargetMessageNew.MessageId = await messanger.SendPhotoMessage(chatId, functionResultMessage.ImageUrl, Strings.InitAnswerTemplate, new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                responseTargetMessageNew.Content = "";
+                await DoStreamResponseToLastMessage(responseTargetMessageNew, isMediaCaption: true).ConfigureAwait(false);
+            }
+            else
+            {
+                await DoStreamResponseToLastMessage(responseTargetMessage).ConfigureAwait(false);
+            }
+
+            return true;
+        }
+
+        private async Task UpdateTargetMessage(IChatMessage responseTargetMessage, string textContentDelta = "", bool finalUpdate = false, bool isMediaCaption = false)
+        {
+            responseTargetMessage.Content += textContentDelta;
+            if (responseTargetMessage.Content.Length % messageUpdateStepInCharsCount == 0 || finalUpdate)
+            {
+                if (isMediaCaption)
+                {
+                    await messanger.EditMessageCaption(chatId, responseTargetMessage.MessageId, responseTargetMessage.Content, finalUpdate ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                }
+                else
+                {
+                    await messanger.EditTextMessage(chatId, responseTargetMessage.MessageId, responseTargetMessage.Content, finalUpdate ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                }
             }
         }
 
-        private async Task<IChatMessage> GetResponseTargetMessage(string messageId = null)
+        private async Task<IChatMessage> SendResponseTargetMessage(IChatMessage responseTargetMessage = null)
         {
-            var responseTargetMessage = CreateInitMessage();
-            if (string.IsNullOrEmpty(messageId))
+            if (responseTargetMessage == null)
             {
-                responseTargetMessage.Id = await messanger.SendMessage(chatId, responseTargetMessage, new List<CallbackId> { new CallbackId(CancelCallback.cName) });
+                responseTargetMessage = responseTargetMessage ?? CreateInitMessage();
+                responseTargetMessage.MessageId = await messanger.SendMessage(chatId, responseTargetMessage, new List<ActionId> { new ActionId(CancelAction.Name) }).ConfigureAwait(false);
+                responseTargetMessage.Content = "";
             }
 
-            responseTargetMessage.Content = "";
             return responseTargetMessage;
         }
 
         public async void Reset()
         {
-            await RemoveButtonsFromLastAssistantMessage();
+            await UpdateLastMessageButtons().ConfigureAwait(false);
             messages.Clear();
         }
 
-        public Task LockAsync(int lockCode)
+        public Task LockAsync(long lockCode)
         {
             _ = Interlocked.Exchange(ref interruptionCode, lockCode);
-            return semaphore.WaitAsync();
+            return messagesLock.WaitAsync();
         }
 
         public void Unlock()
         {
-            _ = semaphore.Release();
+            _ = messagesLock.Release();
         }
 
         private void AddMessageExample(string messageRole, string message)
         {
-            messages.Add(new ChatMessage
+            if (messages.Count == 0)
+                messages.Add(new List<IChatMessage>());
+
+            AddAnswerMessage(new ChatMessage
             {
-                Id = IChatMessage.internalMessage,
+                MessageId = IChatMessage.internalMessage,
                 Role = messageRole,
                 Name = messageRole == Strings.RoleUser ? $"{messageRole}Name" : openAI.AIName,
                 Content = message
@@ -217,31 +251,33 @@ namespace VivyAI
             SetMode(GetPath("CommonMode"));
         }
 
-        public void Stop()
-        {
-            _ = Interlocked.Exchange(ref interruptionCode, IChat.stopCode);
-        }
-
-        public void Cancel()
-        {
-            _ = Interlocked.Exchange(ref interruptionCode, IChat.cancelCode);
-        }
-
         public async void Regenerate(string messageId)
         {
-            await DeleteMessage(messageId);
-            _ = messages.RemoveAll(message => message.Id == messageId);
-            await DoStreamResponseToLastMessage();
+            await RemoveResponse().ConfigureAwait(false);
+            await DoStreamResponseToLastMessage().ConfigureAwait(false);
+        }
+
+        private async Task RemoveResponse()
+        {
+            var lastPack = messages.Last();
+            var initialUserInput = lastPack.First();
+            foreach (var message in lastPack)
+            {
+                if (message.MessageId != IChatMessage.internalMessage && message.MessageId != initialUserInput.MessageId)
+                    await DeleteMessage(message.MessageId).ConfigureAwait(false);
+            }
+
+            lastPack.RemoveRange(1, lastPack.Count - 1);
         }
 
         public async void Continue()
         {
-            await DoResponseToMessage(new ChatMessage(id: IChatMessage.internalMessage, Strings.Continue, Strings.RoleSystem, Strings.RoleSystem));
+            await DoResponseToMessage(new ChatMessage(messageId: IChatMessage.internalMessage, Strings.Continue, Strings.RoleSystem, Strings.RoleSystem)).ConfigureAwait(false);
         }
 
         public void Dispose()
         {
-            semaphore.Dispose();
+            messagesLock.Dispose();
         }
     }
 }

@@ -124,7 +124,7 @@
     <value>"AI now in Vivy mode."</value>
   </data>
   <data name="Continue" xml:space="preserve">
-    <value>Please continue; share any additional details, thoughts, or suggestions you have. If you consider your answer complete and appropriately finished, just say that your last response is complete.</value>
+    <value>Если есть что продолжить - пожалуйста продолжи.</value>
   </data>
   <data name="DefaultDescription" xml:space="preserve">
     <value>Vivy is a user's true friend.</value>

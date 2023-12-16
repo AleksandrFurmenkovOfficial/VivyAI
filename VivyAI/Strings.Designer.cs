@@ -79,7 +79,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please continue; share any additional details, thoughts, or suggestions you have. If you consider your answer complete and appropriately finished, just say that your last response is complete..
+        ///   Looks up a localized string similar to Если есть что продолжить - пожалуйста продолжи..
         /// </summary>
         internal static string Continue {
             get {

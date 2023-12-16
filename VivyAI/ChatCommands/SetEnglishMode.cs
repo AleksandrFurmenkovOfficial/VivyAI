@@ -4,7 +4,7 @@ namespace VivyAI.ChatCommands
 {
     internal sealed class EnglishCommand : IChatCommand
     {
-        string IChatCommand.CommandName => "english";
+        string IChatCommand.Name => "english";
         bool IChatCommand.IsAdminCommand => false;
         public void Execute(IChat chat, IChatMessage message)
         {

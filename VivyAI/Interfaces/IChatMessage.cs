@@ -2,9 +2,9 @@
 {
     public interface IChatMessage
     {
-        public const string internalMessage = "0";
+        const string internalMessage = "0";
 
-        string Id { get; set; }
+        string MessageId { get; set; }
         string Name { get; set; }
         string Content { get; set; }
         string Role { get; set; }
