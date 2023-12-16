@@ -55,7 +55,7 @@ namespace VivyAI
 
             var content = (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate;
             var actions = isAdd ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : null;
-            try
+            try // todo:
             {
                 await messanger.EditTextMessage(chatId, lastMessage.MessageId, content, actions).ConfigureAwait(false);
             }
@@ -87,7 +87,7 @@ namespace VivyAI
 
         private async Task DoStreamResponseToLastMessage(IChatMessage responseTargetMessage = null, bool isMediaCaption = false)
         {
-            responseTargetMessage = await SendResponseTargetMessage(responseTargetMessage).ConfigureAwait(false);
+            responseTargetMessage ??= await SendResponseTargetMessage().ConfigureAwait(false);
             try
             {
                 await openAI.GetAIResponse(messages.SelectMany(subList => subList).ToList(), async Task<bool> (contentDelta) =>
@@ -140,9 +140,11 @@ namespace VivyAI
             if (imageMessage)
             {
                 await DeleteMessage(responseTargetMessage.MessageId).ConfigureAwait(false);
-                var responseTargetMessageNew = new ChatMessage(messageId: IChatMessage.internalMessage, Strings.InitAnswerTemplate, Strings.RoleAssistant, openAI.AIName);
-                responseTargetMessageNew.MessageId = await messanger.SendPhotoMessage(chatId, functionResultMessage.ImageUrl, Strings.InitAnswerTemplate, new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
-                responseTargetMessageNew.Content = "";
+                var responseTargetMessageNew = new ChatMessage(messageId: IChatMessage.internalMessage, Strings.InitAnswerTemplate, Strings.RoleAssistant, openAI.AIName)
+                {
+                    MessageId = await messanger.SendPhotoMessage(chatId, functionResultMessage.ImageUrl, Strings.InitAnswerTemplate, new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false),
+                    Content = ""
+                };
                 await DoStreamResponseToLastMessage(responseTargetMessageNew, isMediaCaption: true).ConfigureAwait(false);
             }
             else
@@ -169,15 +171,11 @@ namespace VivyAI
             }
         }
 
-        private async Task<IChatMessage> SendResponseTargetMessage(IChatMessage responseTargetMessage = null)
+        private async Task<IChatMessage> SendResponseTargetMessage()
         {
-            if (responseTargetMessage == null)
-            {
-                responseTargetMessage = responseTargetMessage ?? CreateInitMessage();
-                responseTargetMessage.MessageId = await messanger.SendMessage(chatId, responseTargetMessage, new List<ActionId> { new ActionId(CancelAction.Name) }).ConfigureAwait(false);
-                responseTargetMessage.Content = "";
-            }
-
+            var responseTargetMessage = CreateInitMessage();
+            responseTargetMessage.MessageId = await messanger.SendMessage(chatId, responseTargetMessage, new List<ActionId> { new ActionId(CancelAction.Name) }).ConfigureAwait(false);
+            responseTargetMessage.Content = "";
             return responseTargetMessage;
         }
 
