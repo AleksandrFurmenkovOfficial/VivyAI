@@ -2,7 +2,7 @@
 
 namespace VivyAI.MessageActions
 {
-    internal sealed class RegenerateAction : MessageActionsBase
+    internal class RegenerateAction : MessageActionsBase
     {
         public static string Name => "Regenerate";
         public static ActionId Id => new(Name);

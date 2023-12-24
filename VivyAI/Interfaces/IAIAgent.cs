@@ -4,11 +4,11 @@
     {
         public ResponseStreamChunk() { isEnd = true; }
         public ResponseStreamChunk(string textStep) { this.textStep = textStep; }
-        public ResponseStreamChunk(IChatMessage message, string textStep = "", bool isEnd = false)
+        public ResponseStreamChunk(List<ChatMessage> messages, string textStep = "", bool isEnd = false)
         {
             this.textStep = textStep;
             this.isEnd = isEnd;
-            messages.Add(message);
+            this.messages.AddRange(messages);
         }
 
         public readonly string textStep = "";

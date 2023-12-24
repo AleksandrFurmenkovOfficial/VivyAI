@@ -10,20 +10,29 @@ namespace VivyAI
         private const string getImageModel = "dall-e-3";
         private const string getImageDescriptionModel = "gpt-4-vision-preview";
 
-        private HttpRequestMessage GetRequest(dynamic payload, string endpoint)
+        private async Task<object> DoRequest(object payload, string endpoint)
         {
-            string jsonPayload = JsonConvert.SerializeObject(payload);
-            var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            HttpRequestMessage CreateRequest(object payload, string endpoint)
             {
-                Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
-            };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            return request;
+                string jsonPayload = JsonConvert.SerializeObject(payload);
+                var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+                {
+                    Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+                };
+
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                return request;
+            }
+
+            using (var request = CreateRequest(payload, endpoint))
+            {
+                return await Utils.GetJsonResponse(request).ConfigureAwait(false);
+            }
         }
 
         public async Task<Uri> GetImage(string imageDescription, string userId)
         {
-            var payload = new
+            dynamic response = await DoRequest(new
             {
                 model = getImageModel,
                 prompt = imageDescription,
@@ -31,16 +40,14 @@ namespace VivyAI
                 size = "1792x1024",
                 response_format = "url",
                 user = userId
-            };
+            }, $"{apiBase}/images/generations").ConfigureAwait(false);
 
-            using var request = GetRequest(payload, $"{apiBase}/images/generations");
-            dynamic response = await Utils.GetJsonResponse(request).ConfigureAwait(false);
             return new Uri((string)response.data[0].url);
         }
 
         public async Task<string> GetImageDescription(Uri imageUrl, string question)
         {
-            var payload = new
+            dynamic response = await DoRequest(new
             {
                 model = getImageDescriptionModel,
                 messages = new[]
@@ -64,10 +71,7 @@ namespace VivyAI
                     }
                 },
                 max_tokens = 512
-            };
-
-            using var request = GetRequest(payload, $"{apiBase}/chat/completions");
-            dynamic response = await Utils.GetJsonResponse(request).ConfigureAwait(false);
+            }, $"{apiBase}/chat/completions").ConfigureAwait(false);
             return response.choices[0].message.content;
         }
     }

@@ -1,7 +1,10 @@
 ﻿namespace VivyAI.Interfaces
 {
-    internal interface IMessanger
+    internal interface IMessenger
     {
+        const int maxTextLen = 2048;
+        const int maxCaptionLen = 1024;
+
         Task<string> SendMessage(string chatId, IChatMessage message, IList<ActionId> messageActionIds = null);
         Task<string> SendPhotoMessage(string chatId, Uri image, string caption = null, IList<ActionId> messageActionIds = null);
         Task EditTextMessage(string chatId, string messageId, string content, IList<ActionId> messageActionIds = null);

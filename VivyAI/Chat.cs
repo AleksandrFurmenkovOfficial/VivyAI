@@ -1,19 +1,15 @@
-﻿using Newtonsoft.Json;
-using System.Reflection;
-using VivyAI.Interfaces;
+﻿using VivyAI.Interfaces;
 using VivyAI.MessageActions;
-using File = System.IO.File;
 
 namespace VivyAI
 {
-
-    internal sealed class Chat : IChat, IDisposable
+    internal sealed partial class Chat : IChat, IDisposable
     {
         private const int messageUpdateStepInCharsCount = 42;
 
         private readonly string chatId;
         private readonly IAIAgent openAI;
-        private readonly IMessanger messanger;
+        private readonly IMessenger Messenger;
 
         private readonly List<List<IChatMessage>> messages = new();
         private readonly SemaphoreSlim messagesLock = new(1, 1);
@@ -22,10 +18,10 @@ namespace VivyAI
 
         public string Id { get => chatId; }
 
-        public Chat(string chatId, IAIAgent openAI, IMessanger messanger)
+        public Chat(string chatId, IAIAgent openAI, IMessenger Messenger)
         {
             this.openAI = openAI;
-            this.messanger = messanger;
+            this.Messenger = Messenger;
             this.chatId = chatId;
 
             SetCommonMode();
@@ -39,7 +35,7 @@ namespace VivyAI
             await DoStreamResponseToLastMessage().ConfigureAwait(false);
         }
 
-        private async Task UpdateLastMessageButtons(bool isAdd = false)
+        private async Task UpdateLastMessageButtons()
         {
             if (messages.Count == 0)
                 return;
@@ -54,14 +50,23 @@ namespace VivyAI
                 return;
 
             var content = (lastMessage.Content?.Length ?? 0) > 0 ? lastMessage.Content : Strings.InitAnswerTemplate;
-            var actions = isAdd ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : null;
-            try // todo:
+            await UpdateMessage(lastMessage, content).ConfigureAwait(false);
+        }
+
+        private static bool IsMediaMessage(IChatMessage message)
+        {
+            return message.ImageUrl != null;
+        }
+
+        private async Task UpdateMessage(IChatMessage message, string newContent, List<ActionId> newActions = null)
+        {
+            if (IsMediaMessage(message))
             {
-                await messanger.EditTextMessage(chatId, lastMessage.MessageId, content, actions).ConfigureAwait(false);
+                await Messenger.EditMessageCaption(chatId, message.MessageId, newContent, newActions).ConfigureAwait(false);
             }
-            catch
+            else
             {
-                await messanger.EditMessageCaption(chatId, lastMessage.MessageId, content, actions).ConfigureAwait(false);
+                await Messenger.EditTextMessage(chatId, message.MessageId, newContent, newActions).ConfigureAwait(false);
             }
         }
 
@@ -77,7 +82,7 @@ namespace VivyAI
 
         private async Task DeleteMessage(string messageId)
         {
-            _ = await messanger.DeleteMessage(chatId, messageId).ConfigureAwait(false);
+            _ = await Messenger.DeleteMessage(chatId, messageId).ConfigureAwait(false);
         }
 
         private void AddAnswerMessage(IChatMessage responseTargetMessage)
@@ -85,7 +90,7 @@ namespace VivyAI
             messages.Last().Add(responseTargetMessage);
         }
 
-        private async Task DoStreamResponseToLastMessage(IChatMessage responseTargetMessage = null, bool isMediaCaption = false)
+        private async Task DoStreamResponseToLastMessage(IChatMessage responseTargetMessage = null)
         {
             responseTargetMessage ??= await SendResponseTargetMessage().ConfigureAwait(false);
             try
@@ -99,7 +104,7 @@ namespace VivyAI
                         return true;
                     }
 
-                    return await ProcessAsyncResponse(responseTargetMessage, contentDelta, isMediaCaption).ConfigureAwait(false);
+                    return await ProcessAsyncResponse(responseTargetMessage, contentDelta).ConfigureAwait(false);
                 }).ConfigureAwait(false);
             }
             catch (Exception)
@@ -109,14 +114,14 @@ namespace VivyAI
             }
         }
 
-        private async Task<bool> ProcessAsyncResponse(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta, bool isMediaCaption)
+        private async Task<bool> ProcessAsyncResponse(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta)
         {
             bool textStreamUpdate = contentDelta.messages.Count == 0;
             if (textStreamUpdate)
             {
                 var returnCode = Interlocked.Read(ref interruptionCode);
                 var finalUpdate = contentDelta.isEnd || returnCode == IChat.stopCode;
-                await UpdateTargetMessage(responseTargetMessage, contentDelta.textStep, finalUpdate: finalUpdate, isMediaCaption: isMediaCaption).ConfigureAwait(false);
+                finalUpdate |= !await UpdateTargetMessage(responseTargetMessage, contentDelta.textStep, finalUpdate: finalUpdate).ConfigureAwait(false);
                 if (finalUpdate)
                 {
                     AddAnswerMessage(responseTargetMessage);
@@ -126,55 +131,68 @@ namespace VivyAI
                 return false;
             }
 
-            _ = await ProcessFunctionResult(responseTargetMessage, contentDelta).ConfigureAwait(false);
+            await ProcessFunctionResult(responseTargetMessage, contentDelta).ConfigureAwait(false);
             return true;
         }
 
-        private async Task<bool> ProcessFunctionResult(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta)
+        private async Task ProcessFunctionResult(IChatMessage responseTargetMessage, ResponseStreamChunk contentDelta)
         {
-            var functionResultMessage = contentDelta.messages.First();
-            functionResultMessage.MessageId = IChatMessage.internalMessage;
+            var functionCallMessage = contentDelta.messages.First();
+            AddAnswerMessage(functionCallMessage);
+
+            var functionResultMessage = contentDelta.messages.Last();
             AddAnswerMessage(functionResultMessage);
 
             bool imageMessage = functionResultMessage.ImageUrl != null;
             if (imageMessage)
             {
                 await DeleteMessage(responseTargetMessage.MessageId).ConfigureAwait(false);
-                var responseTargetMessageNew = new ChatMessage(messageId: IChatMessage.internalMessage, Strings.InitAnswerTemplate, Strings.RoleAssistant, openAI.AIName)
+                var newMessageId = await Messenger.SendPhotoMessage(chatId, functionResultMessage.ImageUrl, Strings.InitAnswerTemplate, new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                var responseTargetMessageNew = new ChatMessage(messageId: IChatMessage.internalMessage, Strings.InitAnswerTemplate, Strings.RoleAssistant, openAI.AIName, functionResultMessage.ImageUrl)
                 {
-                    MessageId = await messanger.SendPhotoMessage(chatId, functionResultMessage.ImageUrl, Strings.InitAnswerTemplate, new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false),
-                    Content = ""
+                    Content = "",
+                    MessageId = newMessageId
                 };
-                await DoStreamResponseToLastMessage(responseTargetMessageNew, isMediaCaption: true).ConfigureAwait(false);
+                await DoStreamResponseToLastMessage(responseTargetMessageNew).ConfigureAwait(false);
             }
             else
             {
                 await DoStreamResponseToLastMessage(responseTargetMessage).ConfigureAwait(false);
             }
-
-            return true;
         }
 
-        private async Task UpdateTargetMessage(IChatMessage responseTargetMessage, string textContentDelta = "", bool finalUpdate = false, bool isMediaCaption = false)
+        private async Task<bool> UpdateTargetMessage(IChatMessage responseTargetMessage, string textContentDelta, bool finalUpdate)
         {
             responseTargetMessage.Content += textContentDelta;
-            if (responseTargetMessage.Content.Length % messageUpdateStepInCharsCount == 0 || finalUpdate)
+            if ((responseTargetMessage.Content.Length % messageUpdateStepInCharsCount) == 1 || finalUpdate)
             {
-                if (isMediaCaption)
+                bool hasContent = responseTargetMessage.Content.Length > 0;
+                bool hasMedia = responseTargetMessage.ImageUrl != null;
+                if (hasMedia && responseTargetMessage.Content.Length > IMessenger.maxCaptionLen)
                 {
-                    await messanger.EditMessageCaption(chatId, responseTargetMessage.MessageId, responseTargetMessage.Content, finalUpdate ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                    responseTargetMessage.Content = responseTargetMessage.Content[..IMessenger.maxCaptionLen];
+                    finalUpdate = true;
                 }
-                else
+                else if (!hasMedia && responseTargetMessage.Content.Length > IMessenger.maxTextLen)
                 {
-                    await messanger.EditTextMessage(chatId, responseTargetMessage.MessageId, responseTargetMessage.Content, finalUpdate ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : new List<ActionId> { new ActionId(StopAction.Name) }).ConfigureAwait(false);
+                    responseTargetMessage.Content = responseTargetMessage.Content[..IMessenger.maxTextLen];
+                    finalUpdate = true;
                 }
+
+                var newContent = hasContent ? (string)responseTargetMessage.Content.Clone() : "..."; // TODO: goesWrong
+                var actions = finalUpdate ? (hasContent ? new List<ActionId> { new ActionId(ContinueAction.Name), new ActionId(RegenerateAction.Name) } : new List<ActionId> { new ActionId(RetryAction.Name) }) : new List<ActionId> { new ActionId(StopAction.Name) };
+                await UpdateMessage(responseTargetMessage, newContent, actions).ConfigureAwait(false);
+
+                return !finalUpdate;
             }
+
+            return true;
         }
 
         private async Task<IChatMessage> SendResponseTargetMessage()
         {
             var responseTargetMessage = CreateInitMessage();
-            responseTargetMessage.MessageId = await messanger.SendMessage(chatId, responseTargetMessage, new List<ActionId> { new ActionId(CancelAction.Name) }).ConfigureAwait(false);
+            responseTargetMessage.MessageId = await Messenger.SendMessage(chatId, responseTargetMessage, new List<ActionId> { new ActionId(CancelAction.Name) }).ConfigureAwait(false);
             responseTargetMessage.Content = "";
             return responseTargetMessage;
         }
@@ -194,59 +212,6 @@ namespace VivyAI
         public void Unlock()
         {
             _ = messagesLock.Release();
-        }
-
-        private void AddMessageExample(string messageRole, string message)
-        {
-            if (messages.Count == 0)
-                messages.Add(new List<IChatMessage>());
-
-            AddAnswerMessage(new ChatMessage
-            {
-                MessageId = IChatMessage.internalMessage,
-                Role = messageRole,
-                Name = messageRole == Strings.RoleUser ? $"{messageRole}Name" : openAI.AIName,
-                Content = message
-            });
-        }
-
-        private void SetMode(string modeDescriptionFilename)
-        {
-            string jsonText = File.ReadAllText(modeDescriptionFilename);
-            dynamic jsonObj = JsonConvert.DeserializeObject(jsonText);
-
-            openAI.EnableFunctions = jsonObj?.EnableFunctions?.Value ?? false;
-            var name = jsonObj?.AIName?.Value.Trim();
-            openAI.AIName = string.IsNullOrEmpty(name) ? Strings.DefaultName : name;
-            var settings = jsonObj?.AISettings?.Value?.Trim();
-            openAI.SystemMessage = string.IsNullOrEmpty(settings) ? Strings.DefaultDescription : settings;
-
-            if (jsonObj.Examples != null)
-            {
-                foreach (var example in jsonObj.Examples)
-                {
-                    if (example != null && example?.Role != null && example?.Message != null)
-                    {
-                        AddMessageExample(example.Role.Value, example.Message.Value);
-                    }
-                }
-            }
-        }
-
-        private static string GetPath(string mode)
-        {
-            string directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            return $"{directory}/Modes/{mode}.json";
-        }
-
-        public void SetEnglishTeacherMode()
-        {
-            SetMode(GetPath("EnglishTeacherMode"));
-        }
-
-        public void SetCommonMode()
-        {
-            SetMode(GetPath("CommonMode"));
         }
 
         public async void Regenerate(string messageId)

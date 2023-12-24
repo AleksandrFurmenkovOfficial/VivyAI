@@ -2,9 +2,13 @@
 
 internal sealed class AIFunctionResult
 {
-    public AIFunctionResult(string text, Uri imageUrl = null) { this.text = text; this.imageUrl = imageUrl; }
+    public AIFunctionResult(string result, Uri imageUrl = null)
+    {
+        this.result = result;
+        this.imageUrl = imageUrl;
+    }
 
-    public string text;
+    public string result;
     public Uri imageUrl;
 }
 
@@ -12,5 +16,5 @@ internal interface IAIFunction
 {
     string Name { get; }
     object Description();
-    Task<AIFunctionResult> Call(IAIAgent api, dynamic parameters, string userId);
+    Task<AIFunctionResult> Call(IAIAgent api, string parameters, string userId);
 }
