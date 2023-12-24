@@ -4,19 +4,21 @@ using VivyAI.Interfaces;
 
 namespace VivyAI.AIFunctions
 {
-    internal sealed class DescribeImageAIFunction : IAIFunction
+    internal sealed class DescribeImageAIFunction : AIFunctionBase
     {
-        public string Name => "DescribeImage";
+        public override string Name => "DescribeImage";
 
-        public object Description() => new JsonFunction
+        public override object Description() => new JsonFunction
         {
             Name = Name,
-            Description = "This function enables detailed image descriptions by leveraging another GPT-Vision AI.\nVivy's rating for the function: 9 out of 10.",
+            Description = "This function enables detailed image descriptions by leveraging another GPT-Vision AI.\n" +
+                          "Vivy's rating for the function: 9 out of 10.",
+
             Parameters = new JsonFunctionNonPrimitiveProperty()
                 .AddPrimitive("ImageURLToDescribe", new JsonFunctionProperty
                 {
                     Type = "string",
-                    Description = "URL of the image for which a detailed description is sought."
+                    Description = "A full path URL of the image for which a detailed description is sought."
                 })
                 .AddRequired("ImageURLToDescribe")
                 .AddPrimitive("QuestionAboutImage", new JsonFunctionProperty
@@ -27,10 +29,11 @@ namespace VivyAI.AIFunctions
                 .AddRequired("QuestionAboutImage")
         };
 
-        public async Task<AIFunctionResult> Call(IAIAgent api, dynamic parameters, string userId)
+        public override async Task<AIFunctionResult> Call(IAIAgent api, string parameters, string userId)
         {
-            var deserializedParameters = JsonConvert.DeserializeObject(parameters);
-            return new AIFunctionResult(await api.GetImageDescription(new Uri(deserializedParameters.ImageURLToDescribe.Value), deserializedParameters.QuestionAboutImage.Value));
+            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
+            string description = await api.GetImageDescription(new Uri(deserializedParameters.ImageURLToDescribe.Value), deserializedParameters.QuestionAboutImage.Value);
+            return new AIFunctionResult($"{description}");
         }
     }
 }

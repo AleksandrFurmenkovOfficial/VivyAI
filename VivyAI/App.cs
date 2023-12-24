@@ -7,15 +7,14 @@ namespace VivyAI
 {
     internal static class App
     {
-        public static ConcurrentDictionary<string, AppVisitor> visitors;
-        public static ConcurrentDictionary<string, IChat> chatById;
-
-        private static Func<string, IAIAgent> openAIFactory;
-        private static IMessanger messanger;
-        private static IChatCommandProcessor commandProcessor;
-        private static Dictionary<string, IChatMessageAction> actions;
-
         private const string vivyExceptions = "vivyExceptions.txt";
+
+        private static ConcurrentDictionary<string, AppVisitor> visitors;
+        private static ConcurrentDictionary<string, IChat> chatById;
+        private static Func<string, IAIAgent> openAIFactory;
+        private static IMessenger Messenger;
+        private static IChatCommandProcessor commandProcessor;
+        private static IDictionary<string, IChatMessageAction> actions;
 
         public static async Task Main()
         {
@@ -25,6 +24,8 @@ namespace VivyAI
 
         private static void Initialize()
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(GlobalExceptionHandler);
+
             var openAIToken = Environment.GetEnvironmentVariable("OPENAI_TOKEN");
             var telegramBotKey = Environment.GetEnvironmentVariable("TELEGRAM_BOT_KEY");
             var adminId = Environment.GetEnvironmentVariable("ADMIN_ID");
@@ -32,25 +33,37 @@ namespace VivyAI
             visitors = new ConcurrentDictionary<string, AppVisitor>();
             chatById = new ConcurrentDictionary<string, IChat>();
 
-            actions = new Dictionary<string, IChatMessageAction>();
-            RegisterAction(new CancelAction(id => chatById[id]));
-            RegisterAction(new StopAction(id => chatById[id]));
-            RegisterAction(new RegenerateAction(id => chatById[id]));
-            RegisterAction(new ContinueAction(id => chatById[id]));
-
             openAIFactory = (chatId) => new OpenAIAgent(chatId, openAIToken);
-            messanger = new Messanger(telegramBotKey, adminId, HandleMessage, HandleMessageAction);
-            commandProcessor = new ChatCommandProcessor(messanger.IsAdmin);
+            Messenger = new Messenger(telegramBotKey, adminId, HandleMessage, HandleMessageAction, visitors);
+            commandProcessor = new ChatCommandProce(Messenger.IsAdmin, visitors, chatById, Messenger);
+
+            RegisterActions();
         }
 
-        private static void RegisterAction(IChatMessageAction callback)
+        private static void GlobalExceptionHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            actions.Add(callback.GetId.name, callback);
+            LogException((Exception)e.ExceptionObject);
         }
 
-        private static async void HandleMessage(string chatId, IChatMessage message)
+        private static void RegisterActions()
         {
-            var chat = chatById.GetOrAdd(chatId, (_) => new Chat(chatId, openAIFactory(chatId), messanger));
+            static void RegisterAction(IChatMessageAction callback)
+            {
+                actions.Add(callback.GetId.name, callback);
+            }
+
+            actions = new Dictionary<string, IChatMessageAction>();
+            static IChat chatGetter(string id) => chatById[id];
+            RegisterAction(new CancelAction(chatGetter));
+            RegisterAction(new StopAction(chatGetter));
+            RegisterAction(new RegenerateAction(chatGetter));
+            RegisterAction(new ContinueAction(chatGetter));
+            RegisterAction(new RetryAction(chatGetter, Messenger));
+        }
+
+        private static async Task HandleMessage(string chatId, IChatMessage message)
+        {
+            var chat = chatById.GetOrAdd(chatId, (_) => new Chat(chatId, openAIFactory(chatId), Messenger));
             try
             {
                 await chat.LockAsync(IChat.stopCode).ConfigureAwait(false);
@@ -65,7 +78,7 @@ namespace VivyAI
             catch (Exception e)
             {
                 LogException(e);
-                _ = messanger.SendMessage(chatId, new ChatMessage(Strings.SomethingGoesWrong));
+                _ = Messenger.SendMessage(chatId, new ChatMessage(Strings.SomethingGoesWrong), new List<ActionId> { new ActionId(RetryAction.Name) });
             }
             finally
             {
@@ -73,26 +86,26 @@ namespace VivyAI
             }
         }
 
-        private static async void HandleMessageAction(KeyValuePair<string, ActionParameters> packedActionCall)
+        private static async Task HandleMessageAction(KeyValuePair<string, ActionParameters> packedActionCall)
         {
             var chatId = packedActionCall.Value.userId;
-            if (chatById.TryGetValue(chatId, out IChat chat))
+            if (!chatById.TryGetValue(chatId, out IChat chat))
+                return;
+
+            try
             {
-                try
-                {
-                    var callback = actions[packedActionCall.Key];
-                    await chat.LockAsync(callback.LockCode).ConfigureAwait(false);
-                    callback.Run(packedActionCall.Value);
-                }
-                catch (Exception e)
-                {
-                    LogException(e);
-                    _ = messanger.SendMessage(chatId, new ChatMessage(Strings.SomethingGoesWrong));
-                }
-                finally
-                {
-                    chat.Unlock();
-                }
+                var callback = actions[packedActionCall.Key];
+                await chat.LockAsync(callback.LockCode).ConfigureAwait(false);
+                callback.Run(packedActionCall.Value);
+            }
+            catch (Exception e)
+            {
+                LogException(e);
+                _ = Messenger.SendMessage(chatId, new ChatMessage(Strings.SomethingGoesWrong), new List<ActionId> { new ActionId(RetryAction.Name) });
+            }
+            finally
+            {
+                chat.Unlock();
             }
         }
 
@@ -100,21 +113,18 @@ namespace VivyAI
         {
             Console.WriteLine($"{e.Message}\n{e.StackTrace}");
 
-            using var writer = new StreamWriter(vivyExceptions, true);
-            writer.WriteLine("Exception Date: " + DateTime.Now.ToString(CultureInfo.InvariantCulture));
-            writer.WriteLine("Exception Message: " + e.Message);
-            writer.WriteLine("Stack Trace: " + e.StackTrace);
-            writer.WriteLine(new string('-', 42));
+            using (var writer = new StreamWriter(vivyExceptions, true))
+            {
+                writer.WriteLine("Exception Date: " + DateTime.Now.ToString(CultureInfo.InvariantCulture));
+                writer.WriteLine("Exception Message: " + e.Message);
+                writer.WriteLine("Stack Trace: " + e.StackTrace);
+                writer.WriteLine(new string('-', 42));
+            }
 
             if (sendAdmin)
             {
-                messanger.NotifyAdmin($"{e.Message}\n{e.StackTrace}");
+                Messenger.NotifyAdmin($"{e.Message}\n{e.StackTrace}");
             }
-        }
-
-        public static void SendAppMessage(string chatId, IChatMessage message)
-        {
-            _ = messanger.SendMessage(chatId, message);
         }
     }
 }

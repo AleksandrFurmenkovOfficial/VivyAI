@@ -121,10 +121,10 @@
     <value>Attached image</value>
   </data>
   <data name="CommonModeNow" xml:space="preserve">
-    <value>"AI now in Vivy mode."</value>
+    <value>AI now in Vivy mode.</value>
   </data>
   <data name="Continue" xml:space="preserve">
-    <value>Если есть что продолжить - пожалуйста продолжи.</value>
+    <value>If you have something to continue, please continue.</value>
   </data>
   <data name="DefaultDescription" xml:space="preserve">
     <value>Vivy is a user's true friend.</value>
@@ -133,7 +133,7 @@
     <value>Vivy</value>
   </data>
   <data name="EnglishModeNow" xml:space="preserve">
-    <value>"AI now in english teacher mode."</value>
+    <value>AI now in english teacher mode.</value>
   </data>
   <data name="InitAnswerTemplate" xml:space="preserve">
     <value>...</value>
@@ -141,11 +141,17 @@
   <data name="NoAccess" xml:space="preserve">
     <value>You do not have access to the bot. Please contact a bot administrator to request access.</value>
   </data>
+  <data name="NoText" xml:space="preserve">
+    <value>No text</value>
+  </data>
   <data name="OnlyTextOrPhoto" xml:space="preserve">
     <value>Only text or photo messages are allowed.</value>
   </data>
+  <data name="Question" xml:space="preserve">
+    <value>Question</value>
+  </data>
   <data name="Quote" xml:space="preserve">
-    <value>Цитата</value>
+    <value>Quote</value>
   </data>
   <data name="RoleAssistant" xml:space="preserve">
     <value>assistant</value>
@@ -162,16 +168,19 @@
   <data name="SomethingGoesWrong" xml:space="preserve">
     <value>Something goes wrong 😓 please try again...</value>
   </data>
+  <data name="Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
   <data name="Unknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
   <data name="UserComment" xml:space="preserve">
-    <value>Комментарий пользователя</value>
+    <value>User comment</value>
   </data>
   <data name="Warning" xml:space="preserve">
     <value>Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts.</value>
   </data>
   <data name="WhatIsOnTheImage" xml:space="preserve">
-    <value>Что на картинке?</value>
+    <value>What's in the picture?</value>
   </data>
 </root>

@@ -70,7 +70,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &quot;AI now in Vivy mode.&quot;.
+        ///   Looks up a localized string similar to AI now in Vivy mode..
         /// </summary>
         internal static string CommonModeNow {
             get {
@@ -79,7 +79,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Если есть что продолжить - пожалуйста продолжи..
+        ///   Looks up a localized string similar to If you have something to continue, please continue..
         /// </summary>
         internal static string Continue {
             get {
@@ -106,7 +106,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &quot;AI now in english teacher mode.&quot;.
+        ///   Looks up a localized string similar to AI now in english teacher mode..
         /// </summary>
         internal static string EnglishModeNow {
             get {
@@ -133,6 +133,15 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No text.
+        /// </summary>
+        internal static string NoText {
+            get {
+                return ResourceManager.GetString("NoText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Only text or photo messages are allowed..
         /// </summary>
         internal static string OnlyTextOrPhoto {
@@ -142,7 +151,16 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Цитата.
+        ///   Looks up a localized string similar to Question.
+        /// </summary>
+        internal static string Question {
+            get {
+                return ResourceManager.GetString("Question", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Quote.
         /// </summary>
         internal static string Quote {
             get {
@@ -196,6 +214,15 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        internal static string Text {
+            get {
+                return ResourceManager.GetString("Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
         internal static string Unknown {
@@ -205,7 +232,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Комментарий пользователя.
+        ///   Looks up a localized string similar to User comment.
         /// </summary>
         internal static string UserComment {
             get {
@@ -223,7 +250,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Что на картинке?.
+        ///   Looks up a localized string similar to What&apos;s in the picture?.
         /// </summary>
         internal static string WhatIsOnTheImage {
             get {

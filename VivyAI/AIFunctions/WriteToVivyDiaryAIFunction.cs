@@ -5,14 +5,16 @@ using VivyAI.Interfaces;
 
 namespace VivyAI.AIFunctions
 {
-    internal sealed class WriteToVivyDiaryAIFunction : IAIFunction
+    internal sealed class WriteToVivyDiaryAIFunction : AIFunctionBase
     {
-        public string Name => "WriteToVivyDiary";
+        public override string Name => "WriteToVivyDiary";
 
-        public object Description() => new JsonFunction
+        public override object Description() => new JsonFunction
         {
             Name = Name,
-            Description = "This function enables Vivy to create a new entry in her diary.\nVivy's rating for the function: 10 out of 10.",
+            Description = "This function enables Vivy to create a new entry in her diary.\n" +
+                          "Vivy's rating for the function: 10 out of 10.",
+
             Parameters = new JsonFunctionNonPrimitiveProperty()
                 .AddPrimitive("DiaryEntry", new JsonFunctionProperty
                 {
@@ -22,9 +24,9 @@ namespace VivyAI.AIFunctions
                 .AddRequired("DiaryEntry")
         };
 
-        public async Task<AIFunctionResult> Call(IAIAgent api, dynamic parameters, string userId)
+        public override async Task<AIFunctionResult> Call(IAIAgent api, string parameters, string userId)
         {
-            string path = Utils.GetPathToUserAssociatedMemories(api.AIName, userId);
+            string path = GetPathToUserAssociatedMemories(api.AIName, userId);
             string directory = Path.GetDirectoryName(path);
 
             if (!Directory.Exists(directory))
@@ -32,7 +34,7 @@ namespace VivyAI.AIFunctions
                 _ = Directory.CreateDirectory(directory);
             }
 
-            var deserializedParameters = JsonConvert.DeserializeObject(parameters);
+            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
             string timestamp = DateTime.Now.ToString("[dd/MM/yyyy|HH:mm]", CultureInfo.InvariantCulture);
             string line = $"{timestamp}|{deserializedParameters.DiaryEntry.Value}";
 
