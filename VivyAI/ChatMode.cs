@@ -7,7 +7,7 @@ namespace VivyAI
 {
     internal sealed partial class Chat : IChat, IDisposable
     {
-        private class ModeDescription
+        private sealed class ModeDescription
         {
             [JsonProperty("enableFunctions")]
             public bool EnableFunctions { get; set; }
@@ -22,7 +22,7 @@ namespace VivyAI
             public List<Example> Messages { get; set; }
         }
 
-        private class Example
+        private sealed class Example
         {
             [JsonProperty("role")]
             public string Role { get; set; }
