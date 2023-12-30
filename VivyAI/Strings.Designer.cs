@@ -115,6 +115,15 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to @{0} has started!.
+        /// </summary>
+        internal static string HasStarted {
+            get {
+                return ResourceManager.GetString("HasStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ....
         /// </summary>
         internal static string InitAnswerTemplate {
@@ -214,6 +223,15 @@ namespace VivyAI {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts..
+        /// </summary>
+        internal static string StartWarning {
+            get {
+                return ResourceManager.GetString("StartWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Text.
         /// </summary>
         internal static string Text {
@@ -237,15 +255,6 @@ namespace VivyAI {
         internal static string UserComment {
             get {
                 return ResourceManager.GetString("UserComment", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts..
-        /// </summary>
-        internal static string Warning {
-            get {
-                return ResourceManager.GetString("Warning", resourceCulture);
             }
         }
         

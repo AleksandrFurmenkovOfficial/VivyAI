@@ -2,21 +2,21 @@
 {
     internal interface IChat
     {
-        const long noInterruptionCode = 0;
-        const long stopCode = 1;
-        const long cancelCode = 2;
-
         string Id { get; }
 
-        Task LockAsync(long lockCode);
+        Task LockAsync();
         void Unlock();
 
         void SetCommonMode();
         void SetEnglishTeacherMode();
 
+        Task SendSomethingGoesWrong();
+        Task SendSystemMessage(string content);
+
         Task DoResponseToMessage(IChatMessage message);
-        void Reset();
-        void Regenerate(string messageId);
-        void Continue();
+        Task RemoveResponse();
+        Task Reset();
+        Task RegenerateLastResponse();
+        Task ContinueLastResponse();
     }
 }

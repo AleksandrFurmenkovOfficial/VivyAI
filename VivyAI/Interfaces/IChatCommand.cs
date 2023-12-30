@@ -3,7 +3,7 @@
     internal interface IChatCommand
     {
         string Name { get; }
-        bool IsAdminCommand { get; }
-        void Execute(IChat chat, IChatMessage message);
+        bool IsAdminOnlyCommand { get; }
+        Task Execute(IChat chat, IChatMessage message);
     }
 }
