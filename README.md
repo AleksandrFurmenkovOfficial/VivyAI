@@ -18,6 +18,6 @@ To use VivyAI:
 
 1. Grab the code from the repo.
 2. Set up these variables:
-   - `OPENAI_TOKEN`: For AI magic.
+   - `OPENAI_API_KEY`: For AI magic.
    - `TELEGRAM_BOT_KEY`: To connect your bot.
-   - `ADMIN_ID`: (Optional) For admin powers.
+   - `TELEGRAM_ADMIN_USER_ID`: (Optional) For admin powers.
