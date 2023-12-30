@@ -1,20 +1,9 @@
-﻿using VivyAI.Interfaces;
-
-internal sealed class AIFunctionResult
+﻿namespace VivyAI.Interfaces
 {
-    public AIFunctionResult(string result, Uri imageUrl = null)
+    internal interface IAiFunction
     {
-        this.result = result;
-        this.imageUrl = imageUrl;
+        string Name { get; }
+        object Description();
+        Task<AiFunctionResult> Call(IAiAgent api, string parameters, string userId);
     }
-
-    public string result;
-    public Uri imageUrl;
-}
-
-internal interface IAIFunction
-{
-    string Name { get; }
-    object Description();
-    Task<AIFunctionResult> Call(IAIAgent api, string parameters, string userId);
 }

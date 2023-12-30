@@ -1,8 +1,8 @@
 ﻿namespace VivyAI.Interfaces
 {
-    public interface IChatMessage
+    internal interface IChatMessage
     {
-        const string internalMessage = "0";
+        const string InternalMessageId = "0";
 
         string MessageId { get; set; }
         string Name { get; set; }
