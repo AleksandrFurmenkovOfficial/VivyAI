@@ -5,7 +5,7 @@ namespace VivyAI
 {
     internal static class ExceptionHandler
     {
-        private const string AppExceptionsFileName = "AppExceptionsFileName.log";
+        private const string AppExceptionsFileName = "AppExceptions.log";
 
         public static void LogException(Exception e)
         {
