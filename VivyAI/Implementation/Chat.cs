@@ -1,5 +1,4 @@
-﻿using RxTelegram.Bot.Interface.BaseTypes;
-using VivyAI.Implementation.ChatMessageActions;
+﻿using VivyAI.Implementation.ChatMessageActions;
 using VivyAI.Interfaces;
 
 namespace VivyAI.Implementation
@@ -82,6 +81,19 @@ namespace VivyAI.Implementation
                 Strings.RoleSystem, Strings.RoleSystem)).ConfigureAwait(false);
         }
 
+        public async Task RemoveResponse()
+        {
+            var lastPack = messages.Last();
+            var initialUserInput = lastPack.First();
+            foreach (var message in lastPack.Where(message => message.MessageId != IChatMessage.InternalMessageId &&
+                                                              message != initialUserInput))
+            {
+                await messenger.DeleteMessage(Id, message.MessageId).ConfigureAwait(false);
+            }
+
+            lastPack.RemoveRange(1, lastPack.Count - 1);
+        }
+
         public void Dispose()
         {
             messagesLock.Dispose();
@@ -116,7 +128,8 @@ namespace VivyAI.Implementation
             return message.ImageUrl != null;
         }
 
-        private async Task UpdateMessage(IChatMessage message, string newContent, IEnumerable<ActionId> newActions = null)
+        private async Task UpdateMessage(IChatMessage message, string newContent,
+            IEnumerable<ActionId> newActions = null)
         {
             if (IsMediaMessage(message))
             {
@@ -147,7 +160,7 @@ namespace VivyAI.Implementation
         {
             responseTargetMessage ??= await SendResponseTargetMessage().ConfigureAwait(false);
             await aiAgent.GetAiResponse(Id, messages.SelectMany(subList => subList),
-                Task<bool> (contentDelta) => 
+                Task<bool> (contentDelta) =>
                     ProcessAsyncResponse(responseTargetMessage, contentDelta)).ConfigureAwait(false);
         }
 
@@ -156,13 +169,13 @@ namespace VivyAI.Implementation
         {
             bool textStreamUpdate = contentDelta.Messages.Count == 0;
             var returnCode = Interlocked.Read(ref interruptionCode);
-            var finalUpdate = contentDelta.IsEnd || returnCode == StopCode;
+            var finalUpdate = contentDelta is LastResponseStreamChunk || returnCode == StopCode;
 
             if (textStreamUpdate || finalUpdate)
             {
-                finalUpdate |= !await UpdateTargetMessage(responseTargetMessage, contentDelta.TextStep, finalUpdate)
+                finalUpdate |= !await UpdateTargetMessage(responseTargetMessage, contentDelta.TextDelta, finalUpdate)
                     .ConfigureAwait(false);
-                
+
                 if (!finalUpdate)
                 {
                     return false;
@@ -209,33 +222,32 @@ namespace VivyAI.Implementation
             bool finalUpdate)
         {
             responseTargetMessage.Content += textContentDelta ?? "";
-            if (responseTargetMessage.Content.Length % MessageUpdateStepInCharsCount == 1 || finalUpdate)
+            if (responseTargetMessage.Content.Length % MessageUpdateStepInCharsCount != 1 && !finalUpdate)
+                return true;
+
+            bool hasContent = responseTargetMessage.Content.Length > 0;
+            bool hasMedia = responseTargetMessage.ImageUrl != null;
+            switch (hasMedia)
             {
-                bool hasContent = responseTargetMessage.Content.Length > 0;
-                bool hasMedia = responseTargetMessage.ImageUrl != null;
-                if (hasMedia && responseTargetMessage.Content.Length > IMessenger.MaxCaptionLen)
-                {
+                case true when responseTargetMessage.Content.Length > IMessenger.MaxCaptionLen:
                     responseTargetMessage.Content = responseTargetMessage.Content[..IMessenger.MaxCaptionLen];
                     finalUpdate = true;
-                }
-                else if (!hasMedia && responseTargetMessage.Content.Length > IMessenger.MaxTextLen)
-                {
+                    break;
+                case false when responseTargetMessage.Content.Length > IMessenger.MaxTextLen:
                     responseTargetMessage.Content = responseTargetMessage.Content[..IMessenger.MaxTextLen];
                     finalUpdate = true;
-                }
-
-                var newContent = hasContent ? (string)responseTargetMessage.Content.Clone() : "..."; // TODO: goesWrong
-                var actions = finalUpdate
-                    ? hasContent
-                        ? new List<ActionId> { ContinueAction.Id, RegenerateAction.Id }
-                        : new List<ActionId> { RetryAction.Id }
-                    : new List<ActionId> { StopAction.Id };
-                await UpdateMessage(responseTargetMessage, newContent, actions).ConfigureAwait(false);
-
-                return !finalUpdate;
+                    break;
             }
 
-            return true;
+            var newContent = hasContent ? (string)responseTargetMessage.Content.Clone() : "..."; // TODO: goesWrong
+            var actions = finalUpdate
+                ? hasContent
+                    ? new List<ActionId> { ContinueAction.Id, RegenerateAction.Id }
+                    : new List<ActionId> { RetryAction.Id }
+                : new List<ActionId> { StopAction.Id };
+            await UpdateMessage(responseTargetMessage, newContent, actions).ConfigureAwait(false);
+
+            return !finalUpdate;
         }
 
         private async Task<IChatMessage> SendResponseTargetMessage()
@@ -246,22 +258,6 @@ namespace VivyAI.Implementation
                 .ConfigureAwait(false);
             responseTargetMessage.Content = "";
             return responseTargetMessage;
-        }
-
-        public async Task RemoveResponse()
-        {
-            var lastPack = messages.Last();
-            var initialUserInput = lastPack.First();
-            foreach (var message in lastPack)
-            {
-                if (message.MessageId != IChatMessage.InternalMessageId &&
-                    message != initialUserInput)
-                {
-                    await messenger.DeleteMessage(Id, message.MessageId).ConfigureAwait(false);
-                }
-            }
-
-            lastPack.RemoveRange(1, lastPack.Count - 1);
         }
     }
 }

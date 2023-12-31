@@ -27,9 +27,9 @@ namespace VivyAI.Implementation
 
             services.AddSingleton(new ConcurrentDictionary<string, IAppVisitor>());
             services.AddSingleton(new ConcurrentDictionary<string, ActionId>());
-            services.AddSingleton<IAdminChecker, AdminChecker>(provider => new AdminChecker(adminUserId));
-            services.AddSingleton<IAiAgentFactory, AiAgentFactory>(provider => new AiAgentFactory(openAiApiKey));
-            services.AddSingleton<ITelegramBotSource, TelegramBotSource>(provider =>
+            services.AddSingleton<IAdminChecker, AdminChecker>(_ => new AdminChecker(adminUserId));
+            services.AddSingleton<IAiAgentFactory, AiAgentFactory>(_ => new AiAgentFactory(openAiApiKey));
+            services.AddSingleton<ITelegramBotSource, TelegramBotSource>(_ =>
                 new TelegramBotSource(telegramBotKey));
             services.AddSingleton<IMessenger, Messenger>();
             services.AddSingleton<IChatFactory, ChatFactory>();

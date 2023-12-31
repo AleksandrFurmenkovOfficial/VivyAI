@@ -48,12 +48,9 @@ namespace VivyAI.Implementation
                 return;
             }
 
-            foreach (var example in modeDescription.Messages)
+            foreach (var example in modeDescription.Messages.Where(example => example is { Role: not null, Content: not null }))
             {
-                if (example != null && example.Role != null && example.Content != null)
-                {
-                    AddMessageExample(example.Role, example.Content);
-                }
+                AddMessageExample(example.Role, example.Content);
             }
         }
 

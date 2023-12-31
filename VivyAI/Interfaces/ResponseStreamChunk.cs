@@ -1,29 +1,25 @@
 ﻿namespace VivyAI.Interfaces
 {
-    internal sealed class ResponseStreamChunk
+    internal class ResponseStreamChunk
     {
-        public readonly bool IsEnd;
         public readonly List<IChatMessage> Messages;
-        
-        public readonly string TextStep;
 
-        public ResponseStreamChunk() : this(null, "", true)
+        public readonly string TextDelta;
+
+        public ResponseStreamChunk(string textDelta) : this(null, textDelta)
         {
+            TextDelta = textDelta;
         }
 
-        public ResponseStreamChunk(string textStep) : this(null, textStep, false)
+        public ResponseStreamChunk(IEnumerable<IChatMessage> messages, string textDelta = "")
         {
-            TextStep = textStep;
-        }
-
-        public ResponseStreamChunk(IEnumerable<IChatMessage> messages, string textStep = "", bool isEnd = false)
-        {
-            TextStep = textStep;
-            IsEnd = isEnd;
+            TextDelta = textDelta;
             Messages = new List<IChatMessage>();
 
             if (messages != null)
+            {
                 Messages.AddRange(messages);
+            }
         }
     }
 }

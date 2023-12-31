@@ -7,35 +7,29 @@ namespace VivyAI.Implementation
     {
         public static async Task<Stream> GetStreamFromUrlAsync(Uri url)
         {
-            using (var httpClient = new HttpClient())
-            {
-                var bytes = await httpClient.GetByteArrayAsync(url).ConfigureAwait(false);
-                return new MemoryStream(bytes);
-            }
+            using var httpClient = new HttpClient();
+            var bytes = await httpClient.GetByteArrayAsync(url).ConfigureAwait(false);
+            return new MemoryStream(bytes);
         }
 
         public static async Task<string> EncodeImageToBase64(Uri imageUrl)
         {
-            using (var httpClient = new HttpClient())
-            {
-                var imageBytes = await httpClient.GetByteArrayAsync(imageUrl).ConfigureAwait(false);
-                return Convert.ToBase64String(imageBytes);
-            }
+            using var httpClient = new HttpClient();
+            var imageBytes = await httpClient.GetByteArrayAsync(imageUrl).ConfigureAwait(false);
+            return Convert.ToBase64String(imageBytes);
         }
 
         public static async Task<object> GetJsonResponse(HttpRequestMessage request)
         {
-            using (var client = new HttpClient())
-            using (var response = await client.SendAsync(request).ConfigureAwait(false))
+            using var client = new HttpClient();
+            using var response = await client.SendAsync(request).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
             {
-                if (!response.IsSuccessStatusCode)
-                {
-                    return null;
-                }
-
-                string result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonConvert.DeserializeObject(result);
+                return null;
             }
+
+            string result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonConvert.DeserializeObject(result);
         }
 
         public static int StrToInt(string s)

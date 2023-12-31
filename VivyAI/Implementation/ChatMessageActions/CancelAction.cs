@@ -8,7 +8,7 @@ namespace VivyAI.Implementation.ChatMessageActions
 
         public ActionId GetId => Id;
 
-        public Task Run(IChat chat, ActionParameters id)
+        public Task Run(IChat chat)
         {
             return chat.RemoveResponse();
         }

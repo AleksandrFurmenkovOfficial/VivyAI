@@ -8,16 +8,17 @@ namespace VivyAI.Implementation.ChatMessageActions
 
         public ChatMessageActionProcessor()
         {
-            void RegisterAction(IChatMessageAction callback)
-            {
-                actions.Add(new ActionId(callback.GetId.Name), callback);
-            }
-
             RegisterAction(new CancelAction());
             RegisterAction(new StopAction());
             RegisterAction(new RegenerateAction());
             RegisterAction(new ContinueAction());
             RegisterAction(new RetryAction());
+            return;
+
+            void RegisterAction(IChatMessageAction callback)
+            {
+                actions.Add(new ActionId(callback.GetId.Name), callback);
+            }
         }
 
         public async Task HandleMessageAction(IChat chat, ActionParameters actionCallParameters)
@@ -26,7 +27,7 @@ namespace VivyAI.Implementation.ChatMessageActions
             {
                 var callback = actions[actionCallParameters.ActionId];
                 await chat.LockAsync().ConfigureAwait(false);
-                await callback.Run(chat, actionCallParameters).ConfigureAwait(false);
+                await callback.Run(chat).ConfigureAwait(false);
             }
             catch (Exception e)
             {

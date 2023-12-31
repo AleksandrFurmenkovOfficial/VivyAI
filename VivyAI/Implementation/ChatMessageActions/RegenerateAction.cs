@@ -8,7 +8,7 @@ namespace VivyAI.Implementation.ChatMessageActions
 
         public virtual ActionId GetId => Id;
 
-        public virtual Task Run(IChat chat, ActionParameters id)
+        public virtual Task Run(IChat chat)
         {
             return chat.RegenerateLastResponse();
         }

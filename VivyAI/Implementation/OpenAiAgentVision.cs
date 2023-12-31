@@ -69,19 +69,16 @@ namespace VivyAI.Implementation
 
         private async Task<object> DoRequest(object payload, string endpoint)
         {
-            var createRequest = () =>
+            HttpRequestMessage CreateRequest()
             {
                 string jsonPayload = JsonConvert.SerializeObject(payload);
-                var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
-                {
-                    Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
-                };
+                var request = new HttpRequestMessage(HttpMethod.Post, endpoint) { Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json") };
 
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 return request;
-            };
+            }
 
-            using (var request = createRequest())
+            using (var request = CreateRequest())
             {
                 return await Utils.GetJsonResponse(request).ConfigureAwait(false);
             }
