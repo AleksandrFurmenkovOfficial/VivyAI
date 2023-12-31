@@ -8,10 +8,10 @@ namespace VivyAI.Implementation.ChatMessageActions
 
         public override ActionId GetId => Id;
 
-        public override async Task Run(IChat chat, ActionParameters id)
+        public override async Task Run(IChat chat)
         {
             await chat.RemoveResponse().ConfigureAwait(false);
-            await base.Run(chat, id).ConfigureAwait(false);
+            await base.Run(chat).ConfigureAwait(false);
         }
     }
 }

@@ -82,26 +82,6 @@ namespace VivyAI.Implementation
 
         private static string CompoundUserName(User user)
         {
-            static string RemoveEmojis(string input)
-            {
-                static bool IsEmoji(char ch)
-                {
-                    var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
-                    return unicodeCategory == UnicodeCategory.OtherSymbol;
-                }
-
-                var cleanText = new StringBuilder();
-                foreach (var ch in input)
-                {
-                    if (!char.IsSurrogate(ch) && !IsEmoji(ch))
-                    {
-                        cleanText.Append(ch);
-                    }
-                }
-
-                return cleanText.ToString();
-            }
-
             string input = RemoveEmojis($"{user.FirstName}_{user.Username}_{user.LastName}");
             var result = WrongNameSymbolsRegExp.Replace(input, string.Empty).Replace(' ', '_').TrimStart('_')
                 .TrimEnd('_');
@@ -111,6 +91,23 @@ namespace VivyAI.Implementation
             }
 
             return result;
+
+            static string RemoveEmojis(string input)
+            {
+                var cleanText = new StringBuilder();
+                foreach (var ch in input.Where(ch => !char.IsSurrogate(ch) && !IsEmoji(ch)))
+                {
+                    cleanText.Append(ch);
+                }
+
+                return cleanText.ToString();
+
+                static bool IsEmoji(char ch)
+                {
+                    var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                    return unicodeCategory == UnicodeCategory.OtherSymbol;
+                }
+            }
         }
 
         private bool HasAccess(Message message)
@@ -141,18 +138,19 @@ namespace VivyAI.Implementation
 
         private async void HandleTelegramActionQuery(CallbackQuery callbackQuery)
         {
-            if (callbacksMapping.Remove(callbackQuery.Data, out var callbackId))
-            {
-                var chatId = callbackQuery.From.Id.ToString(CultureInfo.InvariantCulture);
-                if (chatById.TryGetValue(chatId, out var chat))
-                {
-                    await chatMessageActionProcessor.HandleMessageAction(chat,
-                            new ActionParameters(
-                                callbackId,
-                                callbackQuery.Message.MessageId.ToString(CultureInfo.InvariantCulture)))
-                        .ConfigureAwait(false);
-                }
-            }
+            if (!callbacksMapping.Remove(callbackQuery.Data, out var callbackId))
+                return;
+
+            var chatId = callbackQuery.From.Id.ToString(CultureInfo.InvariantCulture);
+            if (!chatById.TryGetValue(chatId, out var chat))
+                return;
+
+            await chatMessageActionProcessor.HandleMessageAction(
+                    chat,
+                    new ActionParameters(
+                        callbackId,
+                        callbackQuery.Message.MessageId.ToString(CultureInfo.InvariantCulture)))
+                .ConfigureAwait(false);
         }
 
         private static bool IsOneToOneChat(Message rawMessage)

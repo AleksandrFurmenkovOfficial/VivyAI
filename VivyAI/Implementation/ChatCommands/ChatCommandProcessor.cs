@@ -24,16 +24,15 @@ namespace VivyAI.Implementation.ChatCommands
             }
 
             var text = message.Content;
-            foreach (var commandPair in commands.Where(value =>
+            foreach ((string commandName, IChatCommand command) in commands.Where(value =>
                          text.Trim().Contains(value.Key, StringComparison.InvariantCultureIgnoreCase)))
             {
-                var command = commandPair.Value;
-                if (!command.IsAdminOnlyCommand || isAdminChecker.IsAdmin(chat.Id))
-                {
-                    message.Content = text[commandPair.Key.Length..];
-                    await command.Execute(chat, message).ConfigureAwait(false);
-                    return true;
-                }
+                if (command.IsAdminOnlyCommand && !isAdminChecker.IsAdmin(chat.Id))
+                    return false;
+
+                message.Content = text[commandName.Length..];
+                await command.Execute(chat, message).ConfigureAwait(false);
+                return true;
             }
 
             return false;
@@ -41,17 +40,18 @@ namespace VivyAI.Implementation.ChatCommands
 
         private void RegisterCommands(ConcurrentDictionary<string, IAppVisitor> visitors)
         {
-            void AddCommand(IChatCommand command)
-            {
-                commands.Add($"/{command.Name}", command);
-            }
-
             AddCommand(new StartCommand());
             AddCommand(new ShowVisitorsCommand(visitors));
             AddCommand(new AddAccessCommand(visitors));
             AddCommand(new DelAccessCommand(visitors));
             AddCommand(new CommonCommand());
             AddCommand(new EnglishCommand());
+            return;
+
+            void AddCommand(IChatCommand command)
+            {
+                commands.Add($"/{command.Name}", command);
+            }
         }
     }
 }

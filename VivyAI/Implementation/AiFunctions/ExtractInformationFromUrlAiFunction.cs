@@ -37,13 +37,11 @@ namespace VivyAI.Implementation.AIFunctions
 
         private static async Task<string> GetTextContentOnly(Uri url)
         {
-            using (var httpClient = new HttpClient())
-            {
-                string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
-                var htmlDocument = new HtmlDocument();
-                htmlDocument.LoadHtml(responseBody);
-                return htmlDocument.DocumentNode.InnerText;
-            }
+            using var httpClient = new HttpClient();
+            string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
+            var htmlDocument = new HtmlDocument();
+            htmlDocument.LoadHtml(responseBody);
+            return htmlDocument.DocumentNode.InnerText;
         }
 
         public override async Task<AiFunctionResult> Call(IAiAgent api, string parameters, string userId)

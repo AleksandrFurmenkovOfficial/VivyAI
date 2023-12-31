@@ -37,51 +37,73 @@ namespace VivyAI.Implementation
         public async Task<string> SendMessage(string chatId, IChatMessage message,
             IEnumerable<ActionId> messageActionIds = null)
         {
-            var sendMessageInternal = async (ParseMode parseMode) =>
-            {
-                var sendMessageRequest = new SendMessage
-                {
-                    ChatId = Utils.StrToLong(chatId),
-                    Text = message.Content,
-                    ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds),
-                    ParseMode = parseMode
-                };
+            return await ReTry().ConfigureAwait(false);
 
+            async Task<string> SendMessageInternal(ParseMode parseMode)
+            {
+                var sendMessageRequest = new SendMessage { ChatId = Utils.StrToLong(chatId), Text = message.Content, ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds), ParseMode = parseMode };
                 var sentMessage = await Bot.SendMessage(sendMessageRequest).ConfigureAwait(false);
                 return sentMessage.MessageId.ToString(CultureInfo.InvariantCulture);
-            };
+            }
 
-            async Task<string> reTry(int tryCount = 3)
+            async Task<string> ReTry(int tryCount = 3)
             {
                 try
                 {
-                    return await sendMessageInternal(MainParseMode).ConfigureAwait(false);
+                    return await SendMessageInternal(MainParseMode).ConfigureAwait(false);
                 }
                 catch
                 {
                     try
                     {
-                        return await sendMessageInternal(FallbackParseMode).ConfigureAwait(false);
+                        return await SendMessageInternal(FallbackParseMode).ConfigureAwait(false);
                     }
                     catch
                     {
                         if (tryCount > 0)
                         {
-                            return await reTry(tryCount - 1).ConfigureAwait(false);
+                            return await ReTry(tryCount - 1).ConfigureAwait(false);
                         }
 
                         throw;
                     }
                 }
             }
-
-            return await reTry().ConfigureAwait(false);
         }
 
         public async Task EditTextMessage(string chatId, string messageId, string newContent,
             IEnumerable<ActionId> messageActionIds = null)
         {
-            var editTextMessageInternal = async (ParseMode parseMode) =>
+            await ReTry().ConfigureAwait(false);
+            return;
+
+            async Task ReTry(int tryCount = 3)
+            {
+                try
+                {
+                    await EditTextMessageInternal(MainParseMode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    try
+                    {
+                        await EditTextMessageInternal(FallbackParseMode).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        if (tryCount > 0)
+                        {
+                            await ReTry(tryCount - 1).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+            }
+
+            async Task EditTextMessageInternal(ParseMode parseMode)
             {
                 var editMessageRequest = new EditMessageText
                 {
@@ -93,41 +115,47 @@ namespace VivyAI.Implementation
                 };
 
                 await Bot.EditMessageText(editMessageRequest).ConfigureAwait(false);
-            };
-
-            async Task reTry(int tryCount = 3)
-            {
-                try
-                {
-                    await editTextMessageInternal(MainParseMode).ConfigureAwait(false);
-                }
-                catch
-                {
-                    try
-                    {
-                        await editTextMessageInternal(FallbackParseMode).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        if (tryCount > 0)
-                        {
-                            await reTry(tryCount - 1).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
-                }
             }
-
-            await reTry().ConfigureAwait(false);
         }
 
         public async Task<string> SendPhotoMessage(string chatId, Uri imageUrl, string caption,
             IEnumerable<ActionId> messageActionIds = null)
         {
-            var sendPhotoMessageInternal = async (ParseMode parseMode, Stream imageStream) =>
+            return await ReTry().ConfigureAwait(false);
+
+            async Task<string> ReTry(int tryCount = 3)
+            {
+                try
+                {
+                    var imageStream = await Utils.GetStreamFromUrlAsync(imageUrl).ConfigureAwait(false);
+                    await using (imageStream.ConfigureAwait(false))
+                    {
+                        return await SendPhotoMessageInternal(MainParseMode, imageStream).ConfigureAwait(false);
+                    }
+                }
+                catch
+                {
+                    try
+                    {
+                        var imageStream = await Utils.GetStreamFromUrlAsync(imageUrl).ConfigureAwait(false);
+                        await using (imageStream.ConfigureAwait(false))
+                        {
+                            return await SendPhotoMessageInternal(FallbackParseMode, imageStream).ConfigureAwait(false);
+                        }
+                    }
+                    catch
+                    {
+                        if (tryCount > 0)
+                        {
+                            return await ReTry(tryCount - 1).ConfigureAwait(false);
+                        }
+
+                        throw;
+                    }
+                }
+            }
+
+            async Task<string> SendPhotoMessageInternal(ParseMode parseMode, Stream imageStream)
             {
                 var sendPhotoMessage = new SendPhoto
                 {
@@ -138,47 +166,43 @@ namespace VivyAI.Implementation
                     ParseMode = parseMode
                 };
 
-                return (await Bot.SendPhoto(sendPhotoMessage).ConfigureAwait(false)).MessageId.ToString(CultureInfo
-                    .InvariantCulture);
-            };
-
-            async Task<string> reTry(int tryCount = 3)
-            {
-                try
-                {
-                    using (var imageStream = await Utils.GetStreamFromUrlAsync(imageUrl).ConfigureAwait(false))
-                    {
-                        return await sendPhotoMessageInternal(MainParseMode, imageStream).ConfigureAwait(false);
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        using (var imageStream = await Utils.GetStreamFromUrlAsync(imageUrl).ConfigureAwait(false))
-                        {
-                            return await sendPhotoMessageInternal(FallbackParseMode, imageStream).ConfigureAwait(false);
-                        }
-                    }
-                    catch
-                    {
-                        if (tryCount > 0)
-                        {
-                            return await reTry(tryCount - 1).ConfigureAwait(false);
-                        }
-
-                        throw;
-                    }
-                }
+                return (await Bot.SendPhoto(sendPhotoMessage).ConfigureAwait(false)).MessageId.ToString(CultureInfo.InvariantCulture);
             }
-
-            return await reTry().ConfigureAwait(false);
         }
 
         public async Task EditMessageCaption(string chatId, string messageId, string caption,
             IEnumerable<ActionId> messageActionIds = null)
         {
-            var editMessageCaptionInternal = async (ParseMode parseMode) =>
+            await ReTry().ConfigureAwait(false);
+            return;
+
+            async Task ReTry(int tryCount = 3)
+            {
+                try
+                {
+                    await EditMessageCaptionInternal(MainParseMode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    try
+                    {
+                        await EditMessageCaptionInternal(FallbackParseMode).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        if (tryCount > 0)
+                        {
+                            await ReTry(tryCount - 1).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+            }
+
+            async Task EditMessageCaptionInternal(ParseMode parseMode)
             {
                 var editCaptionRequest = new EditMessageCaption
                 {
@@ -190,63 +214,34 @@ namespace VivyAI.Implementation
                 };
 
                 await Bot.EditMessageCaption(editCaptionRequest).ConfigureAwait(false);
-            };
-
-            async Task reTry(int tryCount = 3)
-            {
-                try
-                {
-                    await editMessageCaptionInternal(MainParseMode).ConfigureAwait(false);
-                }
-                catch
-                {
-                    try
-                    {
-                        await editMessageCaptionInternal(FallbackParseMode).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        if (tryCount > 0)
-                        {
-                            await reTry(tryCount - 1).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
-                }
             }
-
-            await reTry().ConfigureAwait(false);
         }
 
         private InlineKeyboardMarkup GetInlineKeyboardMarkup(IEnumerable<ActionId> messageActionIds)
         {
-            InlineKeyboardMarkup inlineKeyboardMarkup = null;
             var messageActionIdsList = messageActionIds?.ToList();
-            if (messageActionIdsList != null && messageActionIdsList.Any())
+            if (messageActionIds == null || messageActionIdsList.Count == 0)
             {
-                callbacksMapping.Clear();
-                var buttons = new List<InlineKeyboardButton>();
-                foreach (var callbackId in messageActionIdsList)
-                {
-                    var token = Guid.NewGuid().ToString();
-                    _ = callbacksMapping.TryAdd(token, callbackId);
-                    buttons.Add(new InlineKeyboardButton
-                    {
-                        Text = callbackId.Name,
-                        CallbackData = token
-                    });
-                }
-
-                inlineKeyboardMarkup = new InlineKeyboardMarkup
-                {
-                    InlineKeyboard = new[] { buttons.ToArray() }
-                };
+                return null;
             }
 
-            return inlineKeyboardMarkup;
+            callbacksMapping.Clear();
+            var buttons = new List<InlineKeyboardButton>();
+            foreach (var callbackId in messageActionIdsList)
+            {
+                var token = Guid.NewGuid().ToString();
+                _ = callbacksMapping.TryAdd(token, callbackId);
+                buttons.Add(new InlineKeyboardButton
+                {
+                    Text = callbackId.Name,
+                    CallbackData = token
+                });
+            }
+
+            return new InlineKeyboardMarkup
+            {
+                InlineKeyboard = new[] { buttons.ToArray() }
+            };
         }
     }
 }

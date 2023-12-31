@@ -5,7 +5,6 @@ using Rystem.OpenAi;
 using Rystem.OpenAi.Chat;
 using VivyAI.Implementation.AIFunctions;
 using VivyAI.Interfaces;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VivyAI.Implementation
 {
@@ -55,11 +54,6 @@ namespace VivyAI.Implementation
         {
             var functions = new Dictionary<string, IAiFunction>();
 
-            void AddFunction(IAiFunction function)
-            {
-                functions.Add(function.Name, function);
-            }
-
             AddFunction(new DrawImageByDescriptionAiFunction());
             AddFunction(new DescribeImageAiFunction());
 
@@ -70,6 +64,11 @@ namespace VivyAI.Implementation
             AddFunction(new ExtractInformationFromUrlAiFunction());
 
             return functions;
+
+            void AddFunction(IAiFunction function)
+            {
+                functions.Add(function.Name, function);
+            }
         }
 
         private static string CallInfo(string function, string parameters)
@@ -216,7 +215,7 @@ namespace VivyAI.Implementation
             {
                 if (!isFunctionCall && !isCancelled)
                 {
-                    await streamGetter(new ResponseStreamChunk()).ConfigureAwait(false);
+                    await streamGetter(new LastResponseStreamChunk()).ConfigureAwait(false);
                 }
             }
         }
