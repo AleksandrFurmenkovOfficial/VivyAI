@@ -21,7 +21,7 @@ namespace VivyAI.Implementation.AIFunctions
                     .AddPrimitive("DetailedDescriptionToDrawImage", new JsonFunctionProperty
                     {
                         Type = "string",
-                        Description = "A detailed english description of the image you wish to create."
+                        Description = "A detailed English description of the image you wish to create."
                     })
                     .AddRequired("DetailedDescriptionToDrawImage")
             };
