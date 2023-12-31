@@ -10,7 +10,6 @@ VivyAI is your simple, personal ChatGPT assistant on Telegram, designed with a l
 - **Interaction Recall**: Ask Vivy to remind you about previous chats.
 - **Diary Writer**: Add new thoughts to your diary.
 - **Web Snippet**: Extract and read content from web pages.
-- **Ponder Thoughts**: Engage in self-reflective conversations with Vivy.
 
 ## Quick Start
 
