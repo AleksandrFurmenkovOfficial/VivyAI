@@ -1,16 +1,9 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class AdminChecker : IAdminChecker
+    internal sealed class AdminChecker(string adminUserId) : IAdminChecker
     {
-        private readonly string adminUserId;
-
-        public AdminChecker(string adminUserId)
-        {
-            this.adminUserId = adminUserId;
-        }
-
         public bool IsAdmin(string userId)
         {
             return string.Equals(userId, adminUserId, StringComparison.OrdinalIgnoreCase);

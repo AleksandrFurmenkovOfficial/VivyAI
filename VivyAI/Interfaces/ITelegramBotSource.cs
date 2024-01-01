@@ -1,6 +1,6 @@
 ﻿using RxTelegram.Bot;
 
-namespace VivyAI.Interfaces
+namespace VivyAi.Interfaces
 {
     internal interface ITelegramBotSource
     {

@@ -1,15 +1,15 @@
 ﻿using System.Text.Json.Serialization;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal sealed class ExtractInformationFromUrlAiFunction : AiFunctionBase
     {
-        public override string Name => "ExtractInformationFromURL";
+        public override string Name => "ExtractInformationFromUrl";
 
-        public override object Description()
+        public override JsonFunction Description()
         {
             return new JsonFunction
             {
@@ -37,21 +37,31 @@ namespace VivyAI.Implementation.AIFunctions
 
         private static async Task<string> GetTextContentOnly(Uri url)
         {
-            using var httpClient = new HttpClient();
-            string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(responseBody);
-            return htmlDocument.DocumentNode.InnerText;
+            using (var httpClient = new HttpClient())
+            {
+                string responseBody = await httpClient.GetStringAsync(url).ConfigureAwait(false);
+                var htmlDocument = new HtmlDocument();
+                htmlDocument.LoadHtml(responseBody);
+                return htmlDocument.DocumentNode.InnerText;
+            }
         }
 
         public override async Task<AiFunctionResult> Call(IAiAgent api, string parameters, string userId)
         {
-            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
+            var deserializedParameters =
+                JsonConvert.DeserializeObject<ExtractInformationFromUrlRequest>(parameters);
             string textContent =
-                await GetTextContentOnly(new Uri(deserializedParameters.Url.Value)).ConfigureAwait(false);
-            return new AiFunctionResult(await api.GetSingleResponse(
-                "I am tasked with extracting facts from the given text.", deserializedParameters.Question.Value,
-                textContent));
+                await GetTextContentOnly(new Uri(deserializedParameters.Url)).ConfigureAwait(false);
+            return new AiFunctionResult(await api.GetResponse(
+                "I am tasked with extracting facts from the given text.", deserializedParameters.Question,
+                textContent).ConfigureAwait(false));
+        }
+
+        private sealed class ExtractInformationFromUrlRequest(string url, string question)
+        {
+            [JsonProperty] public string Url { get; } = url;
+
+            [JsonProperty] public string Question { get; } = question;
         }
     }
 }

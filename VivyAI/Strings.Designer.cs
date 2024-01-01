@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace VivyAI {
+namespace VivyAi {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace VivyAI {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("VivyAI.Strings", typeof(Strings).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("VivyAi.Strings", typeof(Strings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -70,7 +70,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AI now in Vivy mode..
+        ///   Looks up a localized string similar to Ai now in Vivy mode..
         /// </summary>
         internal static string CommonModeNow {
             get {
@@ -106,7 +106,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AI now in english teacher mode..
+        ///   Looks up a localized string similar to Ai now in english teacher mode..
         /// </summary>
         internal static string EnglishModeNow {
             get {
@@ -223,7 +223,7 @@ namespace VivyAI {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts..
+        ///   Looks up a localized string similar to Dialogue has been cleared! Ai started a new life. Warning! Ai may produce inaccurate information about people, places, or facts..
         /// </summary>
         internal static string StartWarning {
             get {

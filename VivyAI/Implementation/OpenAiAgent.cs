@@ -1,38 +1,26 @@
 ﻿using System.Diagnostics;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Rystem.OpenAi;
 using Rystem.OpenAi.Chat;
-using VivyAI.Implementation.AIFunctions;
-using VivyAI.Interfaces;
+using VivyAi.Implementation.AiFunctions;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed partial class OpenAiAgent : IAiAgent
+    internal sealed class OpenAiAgent(
+        IOpenAi openAiApi,
+        IAiImagePainter aiImagePainter,
+        IAiImageDescriptor aiGetImageDescription) : IAiAgent
     {
         private const string GptModel = "gpt-4-1106-preview";
         private static readonly ThreadLocal<Random> Random = new(() => new Random(Guid.NewGuid().GetHashCode()));
-        private readonly IDictionary<string, IAiFunction> functions;
-        private readonly IOpenAi openAiApi;
-
-        private readonly string token;
-
-        public OpenAiAgent(string token)
-        {
-            this.token = token;
-
-            const string noDi = "NoDI";
-            _ = OpenAiService.Instance.AddOpenAi(settings => { settings.ApiKey = token; }, noDi);
-            openAiApi = OpenAiService.Factory.Create(noDi);
-
-            functions = GetAiFunctions();
-        }
+        private readonly IDictionary<string, IAiFunction> functions = GetAiFunctions();
 
         public string AiName { get; set; } = "";
         public string SystemMessage { get; set; } = "";
         public bool EnableFunctions { get; set; }
 
-        public Task GetAiResponse(
+        public Task GetResponse(
             string chatId,
             IEnumerable<IChatMessage> messages,
             Func<ResponseStreamChunk, Task<bool>> streamGetter)
@@ -40,9 +28,20 @@ namespace VivyAI.Implementation
             return GetAiResponseImpl(ConvertMessages(messages), streamGetter, chatId);
         }
 
-        public Task<string> GetSingleResponse(string setting, string question, string data)
+        public Task<string> GetResponse(string setting, string question, string data)
         {
             return GetSingleResponse(GptModel, setting, question, data);
+        }
+
+        public Task<Uri> GetImage(string imageDescription, string userId)
+        {
+            return aiImagePainter.GetImage(imageDescription, userId);
+        }
+
+        public Task<string> GetImageDescription(Uri image, string question, string systemMessage = "")
+        {
+            return aiGetImageDescription.GetImageDescription(image, question,
+                string.IsNullOrEmpty(systemMessage) ? SystemMessage : systemMessage);
         }
 
         private IOpenAi GetApi()
@@ -94,7 +93,7 @@ namespace VivyAI.Implementation
                 ImageUrl = result.ImageUrl
             };
 
-            return new List<ChatMessage> { callMessage, resultMessage };
+            return [callMessage, resultMessage];
         }
 
         private async Task CallFunction(string functionName,
@@ -134,13 +133,13 @@ namespace VivyAI.Implementation
         {
             foreach (var function in functions)
             {
-                _ = builder.WithFunction((JsonFunction)function.Value.Description());
+                _ = builder.WithFunction(function.Value.Description());
             }
         }
 
         private static double GetTemperature()
         {
-            const double minTemperature = 0.3;
+            const double minTemperature = 0.333;
             const double oneThird = 1.0 / 3.0;
             return minTemperature + (Random.Value.NextDouble() * oneThird);
         }
@@ -173,9 +172,9 @@ namespace VivyAI.Implementation
                 string currentFunction = "";
                 string currentFunctionArguments = "";
                 const string functionCallReason = "function_call";
-                await foreach (var x in messageBuilder.ExecuteAsStreamAsync())
+                await foreach (var streamingChatResult in messageBuilder.ExecuteAsStreamAsync())
                 {
-                    var newPartOfResponse = x.LastChunk.Choices?.ElementAt(0);
+                    var newPartOfResponse = streamingChatResult.LastChunk.Choices?.ElementAt(0);
                     var messageDelta = newPartOfResponse?.Delta?.Content ?? "";
                     var functionDelta = newPartOfResponse?.Delta?.Function;
 

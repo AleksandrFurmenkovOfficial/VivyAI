@@ -1,7 +1,7 @@
-﻿using VivyAI.Implementation.ChatMessageActions;
-using VivyAI.Interfaces;
+﻿using VivyAi.Implementation.ChatMessageActions;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
     internal sealed partial class Chat : IChat, IDisposable
     {
@@ -11,7 +11,7 @@ namespace VivyAI.Implementation
 
         private readonly IAiAgent aiAgent;
 
-        private readonly List<List<IChatMessage>> messages = new();
+        private readonly List<List<IChatMessage>> messages = [];
         private readonly SemaphoreSlim messagesLock = new(1, 1);
         private readonly IMessenger messenger;
 
@@ -38,7 +38,7 @@ namespace VivyAI.Implementation
         {
             _ = Interlocked.Exchange(ref interruptionCode, NoInterruptionCode);
             await UpdateLastMessageButtons().ConfigureAwait(false);
-            messages.Add(new List<IChatMessage> { message });
+            messages.Add([message]);
             await DoStreamResponseToLastMessage().ConfigureAwait(false);
         }
 
@@ -159,9 +159,18 @@ namespace VivyAI.Implementation
         private async Task DoStreamResponseToLastMessage(IChatMessage responseTargetMessage = null)
         {
             responseTargetMessage ??= await SendResponseTargetMessage().ConfigureAwait(false);
-            await aiAgent.GetAiResponse(Id, messages.SelectMany(subList => subList),
-                Task<bool> (contentDelta) =>
-                    ProcessAsyncResponse(responseTargetMessage, contentDelta)).ConfigureAwait(false);
+
+            try
+            {
+                await aiAgent.GetResponse(Id, messages.SelectMany(subList => subList),
+                    Task<bool> (contentDelta) =>
+                        ProcessAsyncResponse(responseTargetMessage, contentDelta)).ConfigureAwait(false);
+            }
+            catch
+            {
+                await messenger.DeleteMessage(Id, responseTargetMessage.MessageId).ConfigureAwait(false);
+                throw;
+            }
         }
 
         private async Task<bool> ProcessAsyncResponse(IChatMessage responseTargetMessage,
@@ -173,8 +182,9 @@ namespace VivyAI.Implementation
 
             if (textStreamUpdate || finalUpdate)
             {
-                finalUpdate |= !await UpdateTargetMessage(responseTargetMessage, contentDelta.TextDelta, finalUpdate)
-                    .ConfigureAwait(false);
+                finalUpdate |=
+                    !await UpdateTargetMessage(responseTargetMessage, contentDelta.TextDelta ?? "", finalUpdate)
+                        .ConfigureAwait(false);
 
                 if (!finalUpdate)
                 {
@@ -202,7 +212,7 @@ namespace VivyAI.Implementation
             {
                 await messenger.DeleteMessage(Id, responseTargetMessage.MessageId).ConfigureAwait(false);
                 var newMessageId = await messenger.SendPhotoMessage(Id, functionResultMessage.ImageUrl,
-                    Strings.InitAnswerTemplate, new List<ActionId> { StopAction.Id }).ConfigureAwait(false);
+                    Strings.InitAnswerTemplate, [StopAction.Id]).ConfigureAwait(false);
                 var responseTargetMessageNew = new ChatMessage(IChatMessage.InternalMessageId,
                     Strings.InitAnswerTemplate,
                     Strings.RoleAssistant, aiAgent.AiName, functionResultMessage.ImageUrl)
@@ -221,9 +231,11 @@ namespace VivyAI.Implementation
         private async Task<bool> UpdateTargetMessage(IChatMessage responseTargetMessage, string textContentDelta,
             bool finalUpdate)
         {
-            responseTargetMessage.Content += textContentDelta ?? "";
+            responseTargetMessage.Content += textContentDelta;
             if (responseTargetMessage.Content.Length % MessageUpdateStepInCharsCount != 1 && !finalUpdate)
+            {
                 return true;
+            }
 
             bool hasContent = responseTargetMessage.Content.Length > 0;
             bool hasMedia = responseTargetMessage.ImageUrl != null;
@@ -239,12 +251,10 @@ namespace VivyAI.Implementation
                     break;
             }
 
-            var newContent = hasContent ? (string)responseTargetMessage.Content.Clone() : "..."; // TODO: goesWrong
-            var actions = finalUpdate
-                ? hasContent
-                    ? new List<ActionId> { ContinueAction.Id, RegenerateAction.Id }
-                    : new List<ActionId> { RetryAction.Id }
-                : new List<ActionId> { StopAction.Id };
+            var newContent = hasContent ? responseTargetMessage.Content : Strings.SomethingGoesWrong;
+            List<ActionId> actions = finalUpdate
+                ? hasContent ? [ContinueAction.Id, RegenerateAction.Id] : [RetryAction.Id]
+                : [StopAction.Id];
             await UpdateMessage(responseTargetMessage, newContent, actions).ConfigureAwait(false);
 
             return !finalUpdate;
@@ -256,7 +266,7 @@ namespace VivyAI.Implementation
             responseTargetMessage.MessageId = await messenger
                 .SendMessage(Id, responseTargetMessage, new List<ActionId> { CancelAction.Id })
                 .ConfigureAwait(false);
-            responseTargetMessage.Content = "";
+            responseTargetMessage.Content = string.Empty;
             return responseTargetMessage;
         }
     }

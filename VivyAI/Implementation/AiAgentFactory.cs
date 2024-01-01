@@ -1,19 +1,28 @@
-﻿using VivyAI.Interfaces;
+﻿using Rystem.OpenAi;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class AiAgentFactory : IAiAgentFactory
+    internal sealed class AiAgentFactory(
+        string openAiApiKey,
+        IAiImagePainter aiImagePainter,
+        IAiImageDescriptor aiGetImageDescription) : IAiAgentFactory
     {
-        private readonly string openAiApiKey;
-
-        public AiAgentFactory(string openAiApiKey)
-        {
-            this.openAiApiKey = openAiApiKey;
-        }
+        private static readonly SemaphoreSlim messagesLock = new(1, 1);
 
         public IAiAgent CreateAiAgent()
         {
-            return new OpenAiAgent(openAiApiKey);
+            messagesLock.Wait();
+            try
+            {
+                _ = OpenAiService.Instance.AddOpenAi(settings => { settings.ApiKey = openAiApiKey; }, "NoDi");
+                var openAiApi = OpenAiService.Factory.Create("NoDi");
+                return new OpenAiAgent(openAiApi, aiImagePainter, aiGetImageDescription);
+            }
+            finally
+            {
+                messagesLock.Release();
+            }
         }
     }
 }

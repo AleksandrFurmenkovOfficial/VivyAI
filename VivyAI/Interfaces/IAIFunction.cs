@@ -1,9 +1,11 @@
-﻿namespace VivyAI.Interfaces
+﻿using System.Text.Json.Serialization;
+
+namespace VivyAi.Interfaces
 {
     internal interface IAiFunction
     {
         string Name { get; }
-        object Description();
+        JsonFunction Description();
         Task<AiFunctionResult> Call(IAiAgent api, string parameters, string userId);
     }
 }

@@ -1,10 +1,10 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.ChatMessageActions
+namespace VivyAi.Implementation.ChatMessageActions
 {
     internal sealed class ChatMessageActionProcessor : IChatMessageActionProcessor
     {
-        private readonly Dictionary<ActionId, IChatMessageAction> actions = new();
+        private readonly Dictionary<ActionId, IChatMessageAction> actions = [];
 
         public ChatMessageActionProcessor()
         {

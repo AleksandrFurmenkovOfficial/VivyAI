@@ -1,16 +1,9 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class ChatMessageProcessor : IChatMessageProcessor
+    internal sealed class ChatMessageProcessor(IChatCommandProcessor chatCommandProcessor) : IChatMessageProcessor
     {
-        private readonly IChatCommandProcessor chatCommandProcessor;
-
-        public ChatMessageProcessor(IChatCommandProcessor chatCommandProcessor)
-        {
-            this.chatCommandProcessor = chatCommandProcessor;
-        }
-
         public async Task HandleMessage(IChat chat, IChatMessage message)
         {
             try

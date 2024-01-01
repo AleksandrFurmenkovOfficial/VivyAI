@@ -1,8 +1,14 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class ChatMessage : IChatMessage
+    internal sealed class ChatMessage(
+        string messageId,
+        string content,
+        string role = "",
+        string name = "",
+        Uri imageUrl = null)
+        : IChatMessage
     {
         public ChatMessage() : this(messageId: IChatMessage.InternalMessageId, "")
         {
@@ -13,19 +19,10 @@ namespace VivyAI.Implementation
         {
         }
 
-        public ChatMessage(string messageId, string content, string role = "", string name = "", Uri imageUrl = null)
-        {
-            MessageId = messageId;
-            Content = content;
-            Role = role;
-            Name = name;
-            ImageUrl = imageUrl;
-        }
-
-        public string MessageId { get; set; }
-        public string Content { get; set; }
-        public string Role { get; set; }
-        public string Name { get; set; }
-        public Uri ImageUrl { get; set; }
+        public string MessageId { get; set; } = messageId;
+        public string Content { get; set; } = content;
+        public string Role { get; set; } = role;
+        public string Name { get; set; } = name;
+        public Uri ImageUrl { get; set; } = imageUrl;
     }
 }

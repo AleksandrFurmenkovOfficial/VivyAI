@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.ChatCommands
+namespace VivyAi.Implementation.ChatCommands
 {
     internal sealed class ChatCommandProcessor : IChatCommandProcessor
     {
-        private readonly Dictionary<string, IChatCommand> commands = new();
+        private readonly Dictionary<string, IChatCommand> commands = [];
         private readonly IAdminChecker isAdminChecker;
 
         public ChatCommandProcessor(
@@ -28,7 +28,9 @@ namespace VivyAI.Implementation.ChatCommands
                          text.Trim().Contains(value.Key, StringComparison.InvariantCultureIgnoreCase)))
             {
                 if (command.IsAdminOnlyCommand && !isAdminChecker.IsAdmin(chat.Id))
+                {
                     return false;
+                }
 
                 message.Content = text[commandName.Length..];
                 await command.Execute(chat, message).ConfigureAwait(false);

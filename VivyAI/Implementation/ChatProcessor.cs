@@ -4,56 +4,35 @@ using System.Text;
 using System.Text.RegularExpressions;
 using RxTelegram.Bot;
 using RxTelegram.Bot.Interface.BaseTypes;
-using VivyAI.Implementation.ChatCommands;
-using VivyAI.Interfaces;
+using VivyAi.Implementation.ChatCommands;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed partial class ChatProcessor : IChatProcessor
+    internal sealed partial class ChatProcessor(
+        string telegramBotKey,
+        ConcurrentDictionary<string, IAppVisitor> visitors,
+        ConcurrentDictionary<string, ConcurrentDictionary<string, ActionId>> callbacksMapping,
+        IAdminChecker adminChecker,
+        IChatFactory chatFactory,
+        IChatMessageProcessor chatMessageProcessor,
+        IChatMessageActionProcessor chatMessageActionProcessor,
+        ITelegramBotSource botSource)
+        : IChatProcessor
     {
         private const long MaxUniqueVisitors = 10;
         private const string TelegramFileBot = "https://api.telegram.org/file/bot";
 
         private static readonly Regex WrongNameSymbolsRegExp = WrongNameSymbolsRegexpCreator();
 
-        private readonly IAdminChecker adminChecker;
-        private readonly ConcurrentDictionary<string, ActionId> callbacksMapping;
+        private readonly ConcurrentDictionary<string, IChat> chatById = [];
 
-        private readonly ConcurrentDictionary<string, IChat> chatById = new();
-        private readonly IChatFactory chatFactory;
-        private readonly IChatMessageActionProcessor chatMessageActionProcessor;
+        private readonly ConcurrentDictionary<string, string> nameMap = [];
 
-        private readonly IChatMessageProcessor chatMessageProcessor;
-        private readonly ConcurrentDictionary<string, string> nameMap = new();
-        private readonly string telegramBotKey;
-
-        private readonly ITelegramBotSource telegramBotSource;
-
-        private readonly ConcurrentDictionary<string, IAppVisitor> visitors;
         private IDisposable callbackListener;
         private IDisposable messageListener;
 
-        public ChatProcessor(
-            string telegramBotKey,
-            ConcurrentDictionary<string, IAppVisitor> visitors,
-            ConcurrentDictionary<string, ActionId> callbacksMapping,
-            IAdminChecker adminChecker,
-            IChatFactory chatFactory,
-            IChatMessageProcessor chatMessageProcessor,
-            IChatMessageActionProcessor chatMessageActionProcessor,
-            ITelegramBotSource botSource)
-        {
-            this.telegramBotKey = telegramBotKey;
-            this.visitors = visitors;
-            this.adminChecker = adminChecker;
-            this.chatFactory = chatFactory;
-            this.callbacksMapping = callbacksMapping;
-            this.chatMessageProcessor = chatMessageProcessor;
-            this.chatMessageActionProcessor = chatMessageActionProcessor;
-            telegramBotSource = botSource;
-        }
-
-        private ITelegramBot Bot => telegramBotSource.GetTelegramBot();
+        private ITelegramBot Bot => botSource.GetTelegramBot();
 
         public async Task Run()
         {
@@ -63,7 +42,7 @@ namespace VivyAI.Implementation
 
         private async Task ReCreate()
         {
-            telegramBotSource.RecreateTelegramBot();
+            botSource.RecreateTelegramBot();
 
             messageListener?.Dispose();
             messageListener = Bot.Updates.Message.Subscribe(HandleTelegramMessage, OnError);
@@ -90,7 +69,7 @@ namespace VivyAI.Implementation
                 result = $"User{user.Id}";
             }
 
-            return result;
+            return result.Replace("__", "_", StringComparison.InvariantCultureIgnoreCase);
 
             static string RemoveEmojis(string input)
             {
@@ -138,12 +117,20 @@ namespace VivyAI.Implementation
 
         private async void HandleTelegramActionQuery(CallbackQuery callbackQuery)
         {
-            if (!callbacksMapping.Remove(callbackQuery.Data, out var callbackId))
+            var chatId = callbackQuery?.From?.Id.ToString(CultureInfo.InvariantCulture);
+            if (chatId == null)
                 return;
 
-            var chatId = callbackQuery.From.Id.ToString(CultureInfo.InvariantCulture);
-            if (!chatById.TryGetValue(chatId, out var chat))
+            var mapping = callbacksMapping.GetOrAdd(chatId, (_) => []);
+            if (!mapping.Remove(callbackQuery.Data, out var callbackId))
+            {
                 return;
+            }
+
+            if (!chatById.TryGetValue(chatId, out var chat))
+            {
+                return;
+            }
 
             await chatMessageActionProcessor.HandleMessageAction(
                     chat,
@@ -213,16 +200,33 @@ namespace VivyAI.Implementation
                 Role = Strings.RoleUser
             };
 
+
             string content = "Messenger: telegram; Syntax: Markdown v2;\n";
-            if (rawMessage.ForwardFrom != null)
+            if (rawMessage.ForwardOrigin != null)
             {
-                content +=
-                    $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from \"{CompoundUserName(rawMessage.ForwardFrom)}\"\n";
-            }
-            else if (rawMessage.ForwardFromChat != null)
-            {
-                content +=
-                    $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from \"{rawMessage.ForwardFromChat.Title}\"(@{rawMessage.ForwardFromChat.Username})\n";
+                switch (rawMessage.ForwardOrigin)
+                {
+                    case MessageOriginChannel messageOriginChannel:
+                        content +=
+                            $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from \"{messageOriginChannel.Chat.Title}\"(@{messageOriginChannel.Chat.Username})\n";
+                        break;
+
+                    case MessageOriginChat messageOriginChat:
+                        content +=
+                            $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from \"{messageOriginChat.SenderChat.Title}\"(@{messageOriginChat.SenderChat.Username}))\n";
+
+                        break;
+
+                    case MessageOriginHiddenUser messageOriginHiddenUser:
+                        content +=
+                            $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from a hidden user with name \"{messageOriginHiddenUser.SenderUserName}\"\n";
+                        break;
+
+                    case MessageOriginUser messageOriginUser:
+                        content +=
+                            $"User \"{CompoundUserName(rawMessage.From)}\" forwarded message from a user with name \"{CompoundUserName(messageOriginUser.SenderUser)}\"\n";
+                        break;
+                }
             }
 
             var replyTo = rawMessage.ReplyToMessage?.Text ?? rawMessage.ReplyToMessage?.Caption;

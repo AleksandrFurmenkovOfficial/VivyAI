@@ -1,13 +1,13 @@
 ﻿using System.Text.Json.Serialization;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal sealed class ReadVivyDiaryAiFunction : AiFunctionBase
     {
         public override string Name => "ReadVivyDiary";
 
-        public override object Description()
+        public override JsonFunction Description()
         {
             return new JsonFunction
             {

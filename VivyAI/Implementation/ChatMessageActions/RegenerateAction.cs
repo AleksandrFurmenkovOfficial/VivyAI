@@ -1,6 +1,6 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.ChatMessageActions
+namespace VivyAi.Implementation.ChatMessageActions
 {
     internal class RegenerateAction : IChatMessageAction
     {

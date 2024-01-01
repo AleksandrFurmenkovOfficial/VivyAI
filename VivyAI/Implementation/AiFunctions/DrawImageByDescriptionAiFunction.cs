@@ -1,14 +1,14 @@
 ﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal sealed class DrawImageByDescriptionAiFunction : AiFunctionBase
     {
         public override string Name => "DrawImageByDescription";
 
-        public override object Description()
+        public override JsonFunction Description()
         {
             return new JsonFunction
             {
@@ -18,20 +18,21 @@ namespace VivyAI.Implementation.AIFunctions
                     "Vivy's rating for the function: 9.5 out of 10.",
 
                 Parameters = new JsonFunctionNonPrimitiveProperty()
-                    .AddPrimitive("DetailedDescriptionToDrawImage", new JsonFunctionProperty
+                    .AddPrimitive("ImageDescription", new JsonFunctionProperty
                     {
                         Type = "string",
-                        Description = "A detailed English description of the image you wish to create."
+                        Description = "A detailed(!) English description of the image you wish to create."
                     })
-                    .AddRequired("DetailedDescriptionToDrawImage")
+                    .AddRequired("ImageDescription")
             };
         }
 
         public override async Task<AiFunctionResult> Call(IAiAgent api, string parameters, string userId)
         {
-            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
-            var imageDetailedDescription = deserializedParameters.DetailedDescriptionToDrawImage.Value;
-            Uri image = await api.GetImage(imageDetailedDescription, userId).ConfigureAwait(false);
+            var deserializedParameters = JsonConvert.DeserializeObject<DrawImageByDescriptionRequest>(parameters);
+            var imageDescription = deserializedParameters?.ImageDescription ??
+                                   throw new InvalidDataException("ImageDescription");
+            var image = await api.GetImage(imageDescription, userId).ConfigureAwait(false);
             if (image == null)
             {
                 return new AiFunctionResult(
@@ -45,6 +46,11 @@ namespace VivyAI.Implementation.AIFunctions
                 $"Now, you should briefly describe to the user what has been created.\n" +
                 $"Url to the image: {image}",
                 image);
+        }
+
+        private sealed class DrawImageByDescriptionRequest(string imageDescription)
+        {
+            [JsonProperty] public string ImageDescription { get; } = imageDescription;
         }
     }
 }

@@ -1,9 +1,4 @@
-﻿namespace VivyAI.Interfaces
+﻿namespace VivyAi.Interfaces
 {
-    internal sealed class LastResponseStreamChunk : ResponseStreamChunk
-    {
-        public LastResponseStreamChunk() : base(null, "")
-        {
-        }
-    }
+    internal sealed class LastResponseStreamChunk() : ResponseStreamChunk(null, "");
 }
