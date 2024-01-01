@@ -5,23 +5,17 @@ using RxTelegram.Bot.Interface.BaseTypes;
 using RxTelegram.Bot.Interface.BaseTypes.Enums;
 using RxTelegram.Bot.Interface.BaseTypes.Requests.Attachments;
 using RxTelegram.Bot.Interface.BaseTypes.Requests.Messages;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class Messenger : IMessenger
+    internal sealed class Messenger(
+        ConcurrentDictionary<string, ConcurrentDictionary<string, ActionId>> callbacksMapping,
+        ITelegramBotSource telegramBotSource)
+        : IMessenger
     {
         private const ParseMode MainParseMode = ParseMode.Markdown;
         private const ParseMode FallbackParseMode = ParseMode.HTML;
-
-        private readonly ConcurrentDictionary<string, ActionId> callbacksMapping;
-        private readonly ITelegramBotSource telegramBotSource;
-
-        public Messenger(ConcurrentDictionary<string, ActionId> callbacksMapping, ITelegramBotSource telegramBotSource)
-        {
-            this.callbacksMapping = callbacksMapping;
-            this.telegramBotSource = telegramBotSource;
-        }
 
         private ITelegramBot Bot => telegramBotSource.GetTelegramBot();
 
@@ -41,7 +35,13 @@ namespace VivyAI.Implementation
 
             async Task<string> SendMessageInternal(ParseMode parseMode)
             {
-                var sendMessageRequest = new SendMessage { ChatId = Utils.StrToLong(chatId), Text = message.Content, ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds), ParseMode = parseMode };
+                var sendMessageRequest = new SendMessage
+                {
+                    ChatId = Utils.StrToLong(chatId),
+                    Text = message.Content,
+                    ReplyMarkup = GetInlineKeyboardMarkup(chatId, messageActionIds),
+                    ParseMode = parseMode
+                };
                 var sentMessage = await Bot.SendMessage(sendMessageRequest).ConfigureAwait(false);
                 return sentMessage.MessageId.ToString(CultureInfo.InvariantCulture);
             }
@@ -109,8 +109,8 @@ namespace VivyAI.Implementation
                 {
                     ChatId = Utils.StrToLong(chatId),
                     MessageId = Utils.StrToInt(messageId),
-                    Text = (string)newContent.Clone(),
-                    ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds),
+                    Text = newContent,
+                    ReplyMarkup = GetInlineKeyboardMarkup(chatId, messageActionIds),
                     ParseMode = parseMode
                 };
 
@@ -162,11 +162,12 @@ namespace VivyAI.Implementation
                     ChatId = Utils.StrToLong(chatId),
                     Photo = new InputFile(imageStream),
                     Caption = caption,
-                    ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds),
+                    ReplyMarkup = GetInlineKeyboardMarkup(chatId, messageActionIds),
                     ParseMode = parseMode
                 };
 
-                return (await Bot.SendPhoto(sendPhotoMessage).ConfigureAwait(false)).MessageId.ToString(CultureInfo.InvariantCulture);
+                return (await Bot.SendPhoto(sendPhotoMessage).ConfigureAwait(false)).MessageId.ToString(CultureInfo
+                    .InvariantCulture);
             }
         }
 
@@ -209,7 +210,7 @@ namespace VivyAI.Implementation
                     ChatId = Utils.StrToLong(chatId),
                     MessageId = Utils.StrToInt(messageId),
                     Caption = caption,
-                    ReplyMarkup = GetInlineKeyboardMarkup(messageActionIds),
+                    ReplyMarkup = GetInlineKeyboardMarkup(chatId, messageActionIds),
                     ParseMode = parseMode
                 };
 
@@ -217,7 +218,7 @@ namespace VivyAI.Implementation
             }
         }
 
-        private InlineKeyboardMarkup GetInlineKeyboardMarkup(IEnumerable<ActionId> messageActionIds)
+        private InlineKeyboardMarkup GetInlineKeyboardMarkup(string chatId, IEnumerable<ActionId> messageActionIds)
         {
             var messageActionIdsList = messageActionIds?.ToList();
             if (messageActionIds == null || messageActionIdsList.Count == 0)
@@ -225,12 +226,13 @@ namespace VivyAI.Implementation
                 return null;
             }
 
-            callbacksMapping.Clear();
+            var mapping = callbacksMapping.GetOrAdd(chatId, (_) => []);
+            mapping.Clear();
             var buttons = new List<InlineKeyboardButton>();
             foreach (var callbackId in messageActionIdsList)
             {
                 var token = Guid.NewGuid().ToString();
-                _ = callbacksMapping.TryAdd(token, callbackId);
+                _ = mapping.TryAdd(token, callbackId);
                 buttons.Add(new InlineKeyboardButton
                 {
                     Text = callbackId.Name,
@@ -240,7 +242,7 @@ namespace VivyAI.Implementation
 
             return new InlineKeyboardMarkup
             {
-                InlineKeyboard = new[] { buttons.ToArray() }
+                InlineKeyboard = new[] { buttons }
             };
         }
     }

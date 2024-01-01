@@ -121,7 +121,7 @@
     <value>Attached image</value>
   </data>
   <data name="CommonModeNow" xml:space="preserve">
-    <value>AI now in Vivy mode.</value>
+    <value>Ai now in Vivy mode.</value>
   </data>
   <data name="Continue" xml:space="preserve">
     <value>If you have something to continue, please continue.</value>
@@ -133,7 +133,7 @@
     <value>Vivy</value>
   </data>
   <data name="EnglishModeNow" xml:space="preserve">
-    <value>AI now in english teacher mode.</value>
+    <value>Ai now in english teacher mode.</value>
   </data>
   <data name="InitAnswerTemplate" xml:space="preserve">
     <value>...</value>
@@ -169,7 +169,7 @@
     <value>Something goes wrong 😓 please try again...</value>
   </data>
   <data name="StartWarning" xml:space="preserve">
-    <value>Dialogue has been cleared! AI started a new life. Warning! AI may produce inaccurate information about people, places, or facts.</value>
+    <value>Dialogue has been cleared! Ai started a new life. Warning! Ai may produce inaccurate information about people, places, or facts.</value>
   </data>
   <data name="Text" xml:space="preserve">
     <value>Text</value>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <UserSecretsId>bfa8fcfe-62ea-4ac3-879b-1838ed979a1a</UserSecretsId>
     <SignAssembly>False</SignAssembly>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,7 +10,10 @@
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-all</AnalysisLevel>
     <NeutralLanguage>ru</NeutralLanguage>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <PublishAot>False</PublishAot>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <Trimming>none</Trimming>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,7 +21,7 @@
     <WarningLevel>9999</WarningLevel>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Optimize>False</Optimize>
-    <NoWarn>1701;1702;CA1859;CA1031;CA5394</NoWarn>
+    <NoWarn>CA1859;CA1031;CA5394</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -26,7 +29,7 @@
     <WarningLevel>9999</WarningLevel>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Optimize>True</Optimize>
-    <NoWarn>1701;1702;CA1859;CA1031;CA5394</NoWarn>
+    <NoWarn>CA1859;CA1031;CA5394</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.57" />
-    <PackageReference Include="RxTelegram.Bot" Version="6.9.1" />
+    <PackageReference Include="RxTelegram.Bot" Version="7.0.0" />
     <PackageReference Include="Rystem.OpenAi" Version="3.3.11" />
     <PackageReference Include="System.Reactive.Core" Version="6.0.0" />
   </ItemGroup>

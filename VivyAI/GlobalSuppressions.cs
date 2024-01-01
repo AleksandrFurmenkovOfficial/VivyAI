@@ -7,22 +7,70 @@ using System.Diagnostics.CodeAnalysis;
 
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.ChatFactory")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.ChatFactory")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.Messenger")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.Messenger")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.ChatMessageProcessor")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.ChatMessageProcessor")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.Chat.ModeDescription")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.Chat.ModeDescription")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.Chat.Example")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.Chat.Example")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.ChatCommands.ChatCommandProcessor")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.ChatCommands.ChatCommandProcessor")]
 [assembly:
     SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
-        Scope = "type", Target = "~T:VivyAI.Implementation.ChatMessageActions.ChatMessageActionProcessor")]
+        Scope = "type", Target = "~T:VivyAi.Implementation.ChatMessageActions.ChatMessageActionProcessor")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.AiFunctions.DescribeImageAiFunction.DescribeImageRequest")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type",
+        Target = "~T:VivyAi.Implementation.AiFunctions.DrawImageByDescriptionAiFunction.DrawImageByDescriptionRequest")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type",
+        Target =
+            "~T:VivyAi.Implementation.AiFunctions.ExtractInformationFromUrlAiFunction.ExtractInformationFromUrlRequest")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type",
+        Target =
+            "~T:VivyAi.Implementation.AiFunctions.RetrieveAnswerFromVivyMemoryAboutUserAiFunction.RetrieveAnswerFromVivyMemoryAboutUserRequest")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type",
+        Target = "~T:VivyAi.Implementation.AiFunctions.WriteToVivyDiaryAiFunction.WriteToVivyDiaryRequest")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.AiAgentFactory")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.AiAgentFactory")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImageDescriptor")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImageDescriptor.ChatCompletion")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImageDescriptor.Choice")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImageDescriptor.Message")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImageDescriptor.Usage")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImagePainter.ImageData")]
+[assembly:
+    SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "<Pending>",
+        Scope = "type", Target = "~T:VivyAi.Implementation.OpenAiImagePainter.ImageResult")]

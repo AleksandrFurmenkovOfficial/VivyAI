@@ -1,16 +1,10 @@
-﻿using VivyAI.Interfaces;
+﻿using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.ChatCommands
+namespace VivyAi.Implementation.ChatCommands
 {
-    internal sealed class AppVisitor : IAppVisitor
+    internal sealed class AppVisitor(bool access, string name) : IAppVisitor
     {
-        public AppVisitor(bool access, string name)
-        {
-            Name = name;
-            Access = access;
-        }
-
-        public string Name { get; }
-        public bool Access { get; set; }
+        public string Name { get; } = name;
+        public bool Access { get; set; } = access;
     }
 }

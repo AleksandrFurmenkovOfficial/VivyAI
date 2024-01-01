@@ -1,4 +1,4 @@
-﻿namespace VivyAI.Interfaces
+﻿namespace VivyAi.Interfaces
 {
     internal class ResponseStreamChunk
     {
@@ -14,7 +14,7 @@
         public ResponseStreamChunk(IEnumerable<IChatMessage> messages, string textDelta = "")
         {
             TextDelta = textDelta;
-            Messages = new List<IChatMessage>();
+            Messages = [];
 
             if (messages != null)
             {

@@ -1,4 +1,4 @@
-﻿namespace VivyAI.Interfaces
+﻿namespace VivyAi.Interfaces
 {
     internal interface IAdminChecker
     {

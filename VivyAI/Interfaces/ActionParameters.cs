@@ -1,14 +1,8 @@
-﻿namespace VivyAI.Interfaces
+﻿namespace VivyAi.Interfaces
 {
-    internal readonly struct ActionParameters
+    internal readonly struct ActionParameters(ActionId actionId, string messageId)
     {
-        public readonly string MessageId;
-        public readonly ActionId ActionId;
-
-        public ActionParameters(ActionId actionId, string messageId) : this()
-        {
-            ActionId = actionId;
-            MessageId = messageId;
-        }
+        public readonly string MessageId = messageId;
+        public readonly ActionId ActionId = actionId;
     }
 }

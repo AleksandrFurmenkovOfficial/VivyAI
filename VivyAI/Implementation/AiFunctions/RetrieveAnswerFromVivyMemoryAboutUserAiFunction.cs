@@ -1,14 +1,14 @@
 ﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal sealed class RetrieveAnswerFromVivyMemoryAboutUserAiFunction : AiFunctionBase
     {
         public override string Name => "RetrieveAnswerFromVivyMemoryAboutUser";
 
-        public override object Description()
+        public override JsonFunction Description()
         {
             return new JsonFunction
             {
@@ -36,11 +36,17 @@ namespace VivyAI.Implementation.AIFunctions
                 return new AiFunctionResult("There are no records in the long-term memory associated with this user.");
             }
 
-            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
-            return new AiFunctionResult(await api.GetSingleResponse(
+            var deserializedParameters =
+                JsonConvert.DeserializeObject<RetrieveAnswerFromVivyMemoryAboutUserRequest>(parameters);
+            return new AiFunctionResult(await api.GetResponse(
                 "Please extract information that answers the given question. If the question pertains to a user, their Name might be recorded in various variations - treat these various variations as the same user without any doubts.",
-                deserializedParameters.Question.Value,
-                await File.ReadAllTextAsync(path).ConfigureAwait(false)));
+                deserializedParameters.Question,
+                await File.ReadAllTextAsync(path).ConfigureAwait(false)).ConfigureAwait(false));
+        }
+
+        private sealed class RetrieveAnswerFromVivyMemoryAboutUserRequest(string question)
+        {
+            [JsonProperty] public string Question { get; } = question;
         }
     }
 }

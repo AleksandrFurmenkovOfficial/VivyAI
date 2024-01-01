@@ -1,7 +1,7 @@
-﻿using System.Reflection;
-using VivyAI.Interfaces;
+﻿using System.Text.Json.Serialization;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal abstract class AiFunctionBase : IAiFunction
     {
@@ -12,14 +12,14 @@ namespace VivyAI.Implementation.AIFunctions
             throw new NotImplementedException();
         }
 
-        public virtual object Description()
+        public virtual JsonFunction Description()
         {
             throw new NotImplementedException();
         }
 
         protected static string GetPathToUserAssociatedMemories(string aiName, string userId)
         {
-            string directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string directory = AppContext.BaseDirectory;
             return $"{directory}/../VivyMemory/{aiName}_{userId}.txt";
         }
     }

@@ -1,9 +1,7 @@
-﻿using System.Reflection;
-using Newtonsoft.Json;
-using VivyAI.Interfaces;
+﻿using Newtonsoft.Json;
 using File = System.IO.File;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
     internal sealed partial class Chat
     {
@@ -21,7 +19,7 @@ namespace VivyAI.Implementation
         {
             if (messages.Count == 0)
             {
-                messages.Add(new List<IChatMessage>());
+                messages.Add([]);
             }
 
             AddAnswerMessage(new ChatMessage
@@ -48,7 +46,8 @@ namespace VivyAI.Implementation
                 return;
             }
 
-            foreach (var example in modeDescription.Messages.Where(example => example is { Role: not null, Content: not null }))
+            foreach (var example in modeDescription.Messages.Where(example =>
+                         example is { Role: not null, Content: not null }))
             {
                 AddMessageExample(example.Role, example.Content);
             }
@@ -56,7 +55,7 @@ namespace VivyAI.Implementation
 
         private static string GetPath(string mode)
         {
-            string directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string directory = AppContext.BaseDirectory;
             return $"{directory}/Modes/{mode}.json";
         }
 

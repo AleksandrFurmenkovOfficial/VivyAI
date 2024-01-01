@@ -1,15 +1,9 @@
-﻿namespace VivyAI.Interfaces
+﻿namespace VivyAi.Interfaces
 {
-    internal sealed class AiFunctionResult
+    internal sealed class AiFunctionResult(string result, Uri imageUrl = null)
     {
-        public readonly Uri ImageUrl;
+        public readonly Uri ImageUrl = imageUrl;
 
-        public readonly string Result;
-
-        public AiFunctionResult(string result, Uri imageUrl = null)
-        {
-            Result = result;
-            ImageUrl = imageUrl;
-        }
+        public readonly string Result = result;
     }
 }

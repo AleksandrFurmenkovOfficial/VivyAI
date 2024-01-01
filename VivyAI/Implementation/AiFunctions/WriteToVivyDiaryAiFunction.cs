@@ -1,15 +1,15 @@
 ﻿using System.Globalization;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.AIFunctions
+namespace VivyAi.Implementation.AiFunctions
 {
     internal sealed class WriteToVivyDiaryAiFunction : AiFunctionBase
     {
         public override string Name => "WriteToVivyDiary";
 
-        public override object Description()
+        public override JsonFunction Description()
         {
             return new JsonFunction
             {
@@ -38,12 +38,18 @@ namespace VivyAI.Implementation.AIFunctions
                 _ = Directory.CreateDirectory(directory);
             }
 
-            dynamic deserializedParameters = JsonConvert.DeserializeObject(parameters);
+            var deserializedParameters =
+                JsonConvert.DeserializeObject<WriteToVivyDiaryRequest>(parameters);
             string timestamp = DateTime.Now.ToString("[dd/MM/yyyy|HH:mm]", CultureInfo.InvariantCulture);
-            string line = $"{timestamp}|{deserializedParameters.DiaryEntry.Value}";
+            string line = $"{timestamp}|{deserializedParameters.DiaryEntry}";
 
             await File.AppendAllTextAsync(path, line + Environment.NewLine).ConfigureAwait(false);
             return new AiFunctionResult("The diary entry has been successfully recorded.");
+        }
+
+        private sealed class WriteToVivyDiaryRequest(string diaryEntry)
+        {
+            [JsonProperty] public string DiaryEntry { get; } = diaryEntry;
         }
     }
 }

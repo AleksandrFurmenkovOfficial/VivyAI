@@ -1,17 +1,11 @@
 ﻿using RxTelegram.Bot;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation
+namespace VivyAi.Implementation
 {
-    internal sealed class TelegramBotSource : ITelegramBotSource
+    internal sealed class TelegramBotSource(string telegramBotKey) : ITelegramBotSource
     {
-        private readonly string telegramBotKey;
         private ITelegramBot bot;
-
-        public TelegramBotSource(string telegramBotKey)
-        {
-            this.telegramBotKey = telegramBotKey;
-        }
 
         public ITelegramBot GetTelegramBot()
         {

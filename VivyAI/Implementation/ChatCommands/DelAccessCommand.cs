@@ -1,17 +1,10 @@
 ﻿using System.Collections.Concurrent;
-using VivyAI.Interfaces;
+using VivyAi.Interfaces;
 
-namespace VivyAI.Implementation.ChatCommands
+namespace VivyAi.Implementation.ChatCommands
 {
-    internal sealed class DelAccessCommand : IChatCommand
+    internal sealed class DelAccessCommand(ConcurrentDictionary<string, IAppVisitor> visitors) : IChatCommand
     {
-        private readonly ConcurrentDictionary<string, IAppVisitor> visitors;
-
-        public DelAccessCommand(ConcurrentDictionary<string, IAppVisitor> visitors)
-        {
-            this.visitors = visitors;
-        }
-
         string IChatCommand.Name => "del";
         bool IChatCommand.IsAdminOnlyCommand => true;
 
